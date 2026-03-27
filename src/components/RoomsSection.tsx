@@ -1,7 +1,9 @@
+import { useState } from "react";
 import { motion } from "framer-motion";
 import roomDeluxe from "@/assets/room-deluxe.jpg";
 import roomSuite from "@/assets/room-suite.jpg";
 import roomStandard from "@/assets/room-standard.jpg";
+import RoomDetailModal from "./RoomDetailModal";
 
 const rooms = [
   {
@@ -24,7 +26,10 @@ const rooms = [
   },
 ];
 
-const RoomsSection = () => (
+const RoomsSection = () => {
+  const [selectedRoom, setSelectedRoom] = useState<typeof rooms[number] | null>(null);
+
+  return (
   <section id="rooms" className="section-padding bg-background">
     <div className="section-container">
       <div className="text-center mb-16">
@@ -61,16 +66,25 @@ const RoomsSection = () => (
               <p className="text-muted-foreground text-sm mb-4">{room.description}</p>
               <div className="flex items-center justify-between">
                 <span className="text-gold font-semibold">{room.price}</span>
-                <a href="#booking" className="text-sm font-medium text-navy hover:text-gold transition-colors">
+                <button
+                  onClick={() => setSelectedRoom(room)}
+                  className="text-sm font-medium text-navy hover:text-gold transition-colors"
+                >
                   View Details →
-                </a>
+                </button>
               </div>
             </div>
           </motion.div>
         ))}
       </div>
+      <RoomDetailModal
+        open={!!selectedRoom}
+        onOpenChange={(open) => !open && setSelectedRoom(null)}
+        room={selectedRoom}
+      />
     </div>
   </section>
-);
+  );
+};
 
 export default RoomsSection;
