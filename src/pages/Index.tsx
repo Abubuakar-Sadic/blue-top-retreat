@@ -1,30 +1,32 @@
+import { lazy, Suspense } from "react";
 import Navbar from "@/components/Navbar";
 import HeroSection from "@/components/HeroSection";
-import RoomsSection from "@/components/RoomsSection";
-import EventsSection from "@/components/EventsSection";
-import GallerySection from "@/components/GallerySection";
-import WhyChooseUs from "@/components/WhyChooseUs";
-import TestimonialsSection from "@/components/TestimonialsSection";
-import BookingSection from "@/components/BookingSection";
-import ContactSection from "@/components/ContactSection";
-import MapSection from "@/components/MapSection";
-import CtaSection from "@/components/CtaSection";
-import Footer from "@/components/Footer";
+
+const RoomsSection = lazy(() => import("@/components/RoomsSection"));
+const EventsSection = lazy(() => import("@/components/EventsSection"));
+const GallerySection = lazy(() => import("@/components/GallerySection"));
+const WhyChooseUs = lazy(() => import("@/components/WhyChooseUs"));
+const TestimonialsSection = lazy(() => import("@/components/TestimonialsSection"));
+const BookingSection = lazy(() => import("@/components/BookingSection"));
+const ContactSection = lazy(() => import("@/components/ContactSection"));
+const CtaSection = lazy(() => import("@/components/CtaSection"));
+const Footer = lazy(() => import("@/components/Footer"));
 
 const Index = () => (
   <div className="min-h-screen">
     <Navbar />
     <HeroSection />
-    <RoomsSection />
-    <EventsSection />
-    <GallerySection />
-    <WhyChooseUs />
-    <TestimonialsSection />
-    <BookingSection />
-    <ContactSection />
-    <MapSection />
-    <CtaSection />
-    <Footer />
+    <Suspense fallback={null}>
+      <RoomsSection />
+      <EventsSection />
+      <GallerySection />
+      <WhyChooseUs />
+      <TestimonialsSection />
+      <BookingSection />
+      <ContactSection />
+      <CtaSection />
+      <Footer />
+    </Suspense>
   </div>
 );
 

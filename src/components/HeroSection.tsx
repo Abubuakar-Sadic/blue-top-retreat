@@ -9,6 +9,8 @@ const HeroSection = () => (
       className="absolute inset-0 w-full h-full object-cover"
       width={1920}
       height={1080}
+      fetchPriority="high"
+      decoding="async"
     />
     <div className="absolute inset-0 bg-gradient-to-b from-navy-dark/70 via-navy-dark/50 to-navy-dark/80" />
 
