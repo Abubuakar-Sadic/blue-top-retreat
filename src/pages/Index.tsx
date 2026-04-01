@@ -11,11 +11,13 @@ const BookingSection = lazy(() => import("@/components/BookingSection"));
 const ContactSection = lazy(() => import("@/components/ContactSection"));
 const CtaSection = lazy(() => import("@/components/CtaSection"));
 const Footer = lazy(() => import("@/components/Footer"));
+const WhatsAppButton = lazy(() => import("@/components/WhatsAppButton"));
 
 const Index = () => (
   <div className="min-h-screen">
     <Navbar />
     <HeroSection />
+    <WhatsAppButton />
     <Suspense fallback={null}>
       <RoomsSection />
       <EventsSection />
