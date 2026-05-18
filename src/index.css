@@ -138,4 +138,8 @@
   .gold-divider {
     @apply w-20 h-1 bg-gradient-to-r from-[hsl(var(--gold))] to-[hsl(var(--gold-light))] rounded-full mx-auto;
   }
+
+  .input {
+    @apply w-full px-3 py-2 rounded-lg border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-[hsl(var(--gold))]/40 focus:border-[hsl(var(--gold))]/50 transition-all;
+  }
 }
