@@ -1,24 +1,52 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
+import { z } from "zod";
+import { supabase } from "@/integrations/supabase/client";
+
+const schema = z.object({
+  name: z.string().trim().min(1).max(100),
+  phone: z.string().trim().min(7).max(20),
+  email: z.string().trim().email().max(255).optional().or(z.literal("")),
+  checkin: z.string().min(1),
+  checkout: z.string().min(1),
+});
 
 const BookingSection = () => {
   const [form, setForm] = useState({
     name: "",
     phone: "",
+    email: "",
     checkin: "",
     checkout: "",
     eventType: "",
   });
+  const [busy, setBusy] = useState(false);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    const parsed = schema.safeParse(form);
+    if (!parsed.success) { toast.error(parsed.error.issues[0].message); return; }
+    if (new Date(form.checkin) > new Date(form.checkout)) {
+      toast.error("Check-out must be after check-in"); return;
+    }
+    setBusy(true);
+    const { error } = await supabase.from("bookings").insert({
+      customer_name: form.name,
+      customer_phone: form.phone,
+      customer_email: form.email || null,
+      check_in: form.checkin,
+      check_out: form.checkout,
+      event_type: form.eventType || null,
+    });
+    setBusy(false);
+    if (error) { toast.error(error.message); return; }
     toast.success("Reservation request sent! We'll contact you shortly.");
-    setForm({ name: "", phone: "", checkin: "", checkout: "", eventType: "" });
+    setForm({ name: "", phone: "", email: "", checkin: "", checkout: "", eventType: "" });
   };
 
   const inputClass =
@@ -50,6 +78,10 @@ const BookingSection = () => {
               <label className="block text-sm font-medium text-foreground mb-1.5">Phone Number</label>
               <input name="phone" value={form.phone} onChange={handleChange} required placeholder="054 173 7326" className={inputClass} />
             </div>
+            <div className="sm:col-span-2">
+              <label className="block text-sm font-medium text-foreground mb-1.5">Email (Optional)</label>
+              <input type="email" name="email" value={form.email} onChange={handleChange} placeholder="you@example.com" className={inputClass} />
+            </div>
             <div>
               <label className="block text-sm font-medium text-foreground mb-1.5">Check-in Date</label>
               <input type="date" name="checkin" value={form.checkin} onChange={handleChange} required className={inputClass} />
@@ -69,8 +101,8 @@ const BookingSection = () => {
               <option value="other">Other</option>
             </select>
           </div>
-          <button type="submit" className="btn-gold w-full mt-8 text-base">
-            Make a Reservation
+          <button type="submit" disabled={busy} className="btn-gold w-full mt-8 text-base disabled:opacity-60">
+            {busy ? "Sending..." : "Make a Reservation"}
           </button>
         </motion.form>
       </div>

@@ -5,6 +5,15 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import Index from "./pages/Index.tsx";
 import NotFound from "./pages/NotFound.tsx";
+import Auth from "./pages/Auth.tsx";
+import { AuthProvider } from "./hooks/useAuth.tsx";
+import ProtectedAdmin from "./components/admin/ProtectedAdmin.tsx";
+import AdminLayout from "./components/admin/AdminLayout.tsx";
+import Overview from "./pages/admin/Overview.tsx";
+import Rooms from "./pages/admin/Rooms.tsx";
+import Bookings from "./pages/admin/Bookings.tsx";
+import Payments from "./pages/admin/Payments.tsx";
+import Messages from "./pages/admin/Messages.tsx";
 
 const queryClient = new QueryClient();
 
@@ -14,11 +23,23 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Index />} />
-          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-          <Route path="*" element={<NotFound />} />
-        </Routes>
+        <AuthProvider>
+          <Routes>
+            <Route path="/" element={<Index />} />
+            <Route path="/auth" element={<Auth />} />
+            <Route element={<ProtectedAdmin />}>
+              <Route path="/admin" element={<AdminLayout />}>
+                <Route index element={<Overview />} />
+                <Route path="rooms" element={<Rooms />} />
+                <Route path="bookings" element={<Bookings />} />
+                <Route path="payments" element={<Payments />} />
+                <Route path="messages" element={<Messages />} />
+              </Route>
+            </Route>
+            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>
