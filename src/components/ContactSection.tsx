@@ -12,7 +12,7 @@ const schema = z.object({
 });
 
 const details = [
-  { icon: Phone, label: "Phone", value: "054 173 7326", href: "tel:+233541737326" },
+  { icon: Phone, label: "Phone", value: "059 554 3157", href: "tel:+233595543157" },
   { icon: MapPin, label: "Location", value: "GHCC+G2, Kasoa, Ghana", href: undefined },
   { icon: Clock, label: "Check-in / Check-out", value: "12:00 PM / 12:00 PM", href: undefined },
 ];
