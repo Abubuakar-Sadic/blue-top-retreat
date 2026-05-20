@@ -41,11 +41,17 @@ const Navbar = () => {
   const scrollTo = (e: React.MouseEvent<HTMLAnchorElement>, href: string) => {
     e.preventDefault();
     const id = href.slice(1);
-    const el = document.getElementById(id);
-    if (el) {
-      el.scrollIntoView({ behavior: "smooth", block: "start" });
-    }
     setMobileOpen(false);
+    // Wait for mobile menu to collapse before scrolling so offsets are correct
+    requestAnimationFrame(() => {
+      setTimeout(() => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        const navHeight = 72;
+        const top = el.getBoundingClientRect().top + window.scrollY - navHeight;
+        window.scrollTo({ top, behavior: "smooth" });
+      }, 50);
+    });
   };
 
   return (
