@@ -68,13 +68,13 @@ const Auth = () => {
         </div>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium mb-1.5">Email</label>
-            <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required
+            <label htmlFor="auth-email" className="block text-sm font-medium mb-1.5">Email</label>
+            <input id="auth-email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required
               className="w-full px-4 py-3 rounded-lg border border-border bg-background focus:outline-none focus:ring-2 focus:ring-gold/50" />
           </div>
           <div>
-            <label className="block text-sm font-medium mb-1.5">Password</label>
-            <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required
+            <label htmlFor="auth-password" className="block text-sm font-medium mb-1.5">Password</label>
+            <input id="auth-password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required
               className="w-full px-4 py-3 rounded-lg border border-border bg-background focus:outline-none focus:ring-2 focus:ring-gold/50" />
           </div>
           <button type="submit" disabled={busy} className="btn-gold w-full flex items-center justify-center gap-2">

@@ -7,12 +7,12 @@ import galleryDining from "@/assets/gallery-dining.jpg";
 import galleryLobby from "@/assets/gallery-lobby.jpg";
 
 const images = [
-  { src: heroImg, alt: "Hotel Exterior", span: "md:col-span-2 md:row-span-2" },
-  { src: roomDeluxe, alt: "Deluxe Room", span: "" },
-  { src: galleryPool, alt: "Swimming Pool", span: "" },
-  { src: galleryDining, alt: "Restaurant", span: "md:col-span-2" },
-  { src: roomSuite, alt: "Executive Suite", span: "" },
-  { src: galleryLobby, alt: "Hotel Lobby", span: "" },
+  { src: heroImg, alt: "Blue Top Villa hotel exterior at dusk", label: "Hotel Exterior", span: "md:col-span-2 md:row-span-2" },
+  { src: roomDeluxe, alt: "Deluxe Room with king-size bed", label: "Deluxe Room", span: "" },
+  { src: galleryPool, alt: "Outdoor swimming pool and sun loungers", label: "Swimming Pool", span: "" },
+  { src: galleryDining, alt: "Gourmet dining restaurant interior", label: "Restaurant", span: "md:col-span-2" },
+  { src: roomSuite, alt: "Executive Suite with separate living area", label: "Executive Suite", span: "" },
+  { src: galleryLobby, alt: "Elegant hotel lobby with seating area", label: "Hotel Lobby", span: "" },
 ];
 
 const GallerySection = () => (
@@ -27,7 +27,7 @@ const GallerySection = () => (
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
         {images.map((img, i) => (
           <motion.div
-            key={img.alt}
+            key={img.label}
             initial={{ opacity: 0, scale: 0.95 }}
             whileInView={{ opacity: 1, scale: 1 }}
             viewport={{ once: true }}
@@ -42,7 +42,7 @@ const GallerySection = () => (
             />
             <div className="absolute inset-0 bg-navy-dark/0 group-hover:bg-navy-dark/40 transition-colors duration-500 flex items-center justify-center">
               <span className="text-white font-display text-lg opacity-0 group-hover:opacity-100 transition-opacity duration-500">
-                {img.alt}
+                {img.label}
               </span>
             </div>
           </motion.div>

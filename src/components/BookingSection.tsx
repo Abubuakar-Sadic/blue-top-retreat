@@ -71,29 +71,29 @@ const BookingSection = () => {
         >
           <div className="grid sm:grid-cols-2 gap-5">
             <div>
-              <label className="block text-sm font-medium text-foreground mb-1.5">Full Name</label>
-              <input name="name" value={form.name} onChange={handleChange} required placeholder="John Doe" className={inputClass} />
+              <label htmlFor="booking-name" className="block text-sm font-medium text-foreground mb-1.5">Full Name</label>
+              <input id="booking-name" name="name" value={form.name} onChange={handleChange} required placeholder="John Doe" className={inputClass} />
             </div>
             <div>
-              <label className="block text-sm font-medium text-foreground mb-1.5">Phone Number</label>
-              <input name="phone" value={form.phone} onChange={handleChange} required placeholder="059 554 3157" className={inputClass} />
+              <label htmlFor="booking-phone" className="block text-sm font-medium text-foreground mb-1.5">Phone Number</label>
+              <input id="booking-phone" name="phone" value={form.phone} onChange={handleChange} required placeholder="059 554 3157" className={inputClass} />
             </div>
             <div className="sm:col-span-2">
-              <label className="block text-sm font-medium text-foreground mb-1.5">Email (Optional)</label>
-              <input type="email" name="email" value={form.email} onChange={handleChange} placeholder="you@example.com" className={inputClass} />
+              <label htmlFor="booking-email" className="block text-sm font-medium text-foreground mb-1.5">Email (Optional)</label>
+              <input id="booking-email" type="email" name="email" value={form.email} onChange={handleChange} placeholder="you@example.com" className={inputClass} />
             </div>
             <div>
-              <label className="block text-sm font-medium text-foreground mb-1.5">Check-in Date</label>
-              <input type="date" name="checkin" value={form.checkin} onChange={handleChange} required className={inputClass} />
+              <label htmlFor="booking-checkin" className="block text-sm font-medium text-foreground mb-1.5">Check-in Date</label>
+              <input id="booking-checkin" type="date" name="checkin" value={form.checkin} onChange={handleChange} required className={inputClass} />
             </div>
             <div>
-              <label className="block text-sm font-medium text-foreground mb-1.5">Check-out Date</label>
-              <input type="date" name="checkout" value={form.checkout} onChange={handleChange} required className={inputClass} />
+              <label htmlFor="booking-checkout" className="block text-sm font-medium text-foreground mb-1.5">Check-out Date</label>
+              <input id="booking-checkout" type="date" name="checkout" value={form.checkout} onChange={handleChange} required className={inputClass} />
             </div>
           </div>
           <div className="mt-5">
-            <label className="block text-sm font-medium text-foreground mb-1.5">Event Type (Optional)</label>
-            <select name="eventType" value={form.eventType} onChange={handleChange} className={inputClass}>
+            <label htmlFor="booking-event-type" className="block text-sm font-medium text-foreground mb-1.5">Event Type (Optional)</label>
+            <select id="booking-event-type" name="eventType" value={form.eventType} onChange={handleChange} className={inputClass}>
               <option value="">No event — Room only</option>
               <option value="wedding">Wedding</option>
               <option value="party">Party</option>
