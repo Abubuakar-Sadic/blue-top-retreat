@@ -30,9 +30,9 @@ const HeroSection = () => (
         transition={{ duration: 0.8, delay: 0.2 }}
         className="font-display text-4xl md:text-6xl lg:text-7xl font-bold text-white leading-tight mb-6"
       >
-        Experience Comfort
+        Blue Top Villa — Luxury Hotel
         <br />
-        <span className="text-gold">&amp; Elegance</span>
+        <span className="text-gold">&amp; Event Venue in Kasoa</span>
       </motion.h1>
 
       <motion.p

@@ -1,0 +1,7 @@
+# Blue Top Villa
+
+> Luxury hotel and events center in Kasoa, Ghana offering hotel stays, weddings, parties, and corporate events.
+
+## Pages
+
+- [Home](/): Overview of rooms, events, gallery, upcoming events, and booking.

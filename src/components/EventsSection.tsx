@@ -4,9 +4,9 @@ import partyImg from "@/assets/event-party.jpg";
 import corporateImg from "@/assets/event-corporate.jpg";
 
 const events = [
-  { title: "Weddings", subtitle: "Your dream celebration begins here", image: weddingImg },
-  { title: "Parties", subtitle: "Unforgettable moments, perfectly hosted", image: partyImg },
-  { title: "Corporate Events", subtitle: "Professional spaces for business success", image: corporateImg },
+  { title: "Weddings", alt: "Luxury wedding celebration setup", subtitle: "Your dream celebration begins here", image: weddingImg },
+  { title: "Parties", alt: "Elegant party reception venue", subtitle: "Unforgettable moments, perfectly hosted", image: partyImg },
+  { title: "Corporate Events", alt: "Corporate conference and event hall", subtitle: "Professional spaces for business success", image: corporateImg },
 ];
 
 const EventsSection = () => (
@@ -33,7 +33,7 @@ const EventsSection = () => (
           >
             <img
               src={ev.image}
-              alt={ev.title}
+              alt={ev.alt}
               loading="lazy"
               width={800}
               height={600}

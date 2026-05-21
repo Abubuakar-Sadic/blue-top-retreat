@@ -73,10 +73,17 @@ const ContactSection = () => {
 
       <form onSubmit={submit} className="max-w-xl mx-auto bg-card rounded-2xl p-8 shadow-xl border border-border/50 space-y-4">
         <div className="grid sm:grid-cols-2 gap-4">
-          <input className={inputClass} placeholder="Your name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required />
-          <input className={inputClass} type="email" placeholder="Email (optional)" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
+          <div>
+            <label htmlFor="contact-name" className="sr-only">Your name</label>
+            <input id="contact-name" className={inputClass} placeholder="Your name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required />
+          </div>
+          <div>
+            <label htmlFor="contact-email" className="sr-only">Email (optional)</label>
+            <input id="contact-email" className={inputClass} type="email" placeholder="Email (optional)" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
+          </div>
         </div>
-        <textarea className={inputClass} rows={4} placeholder="Your message..." value={form.message} onChange={(e) => setForm({ ...form, message: e.target.value })} required />
+        <label htmlFor="contact-message" className="sr-only">Your message</label>
+        <textarea id="contact-message" className={inputClass} rows={4} placeholder="Your message..." value={form.message} onChange={(e) => setForm({ ...form, message: e.target.value })} required />
         <button type="submit" disabled={busy} className="btn-gold w-full disabled:opacity-60">{busy ? "Sending..." : "Send Message"}</button>
       </form>
     </div>

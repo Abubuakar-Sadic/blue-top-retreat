@@ -114,7 +114,7 @@ const RoomDetailModal = ({ open, onOpenChange, room }: RoomDetailModalProps) => 
 
           {/* Amenities */}
           <div>
-            <h4 className="font-display text-lg font-semibold text-foreground mb-3">Amenities</h4>
+            <h3 className="font-display text-lg font-semibold text-foreground mb-3">Amenities</h3>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
               {details.amenities.map((a) => (
                 <div key={a.label} className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -127,7 +127,7 @@ const RoomDetailModal = ({ open, onOpenChange, room }: RoomDetailModalProps) => 
 
           {/* Features */}
           <div>
-            <h4 className="font-display text-lg font-semibold text-foreground mb-3">Room Features</h4>
+            <h3 className="font-display text-lg font-semibold text-foreground mb-3">Room Features</h3>
             <ul className="grid grid-cols-2 gap-2">
               {details.features.map((f) => (
                 <li key={f} className="text-sm text-muted-foreground flex items-center gap-2">
