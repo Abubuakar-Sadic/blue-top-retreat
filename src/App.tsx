@@ -15,6 +15,7 @@ import Bookings from "./pages/admin/Bookings.tsx";
 import Payments from "./pages/admin/Payments.tsx";
 import Messages from "./pages/admin/Messages.tsx";
 import Events from "./pages/admin/Events.tsx";
+import EventReservations from "./pages/admin/EventReservations.tsx";
 
 const queryClient = new QueryClient();
 
@@ -36,6 +37,7 @@ const App = () => (
                 <Route path="payments" element={<Payments />} />
                 <Route path="messages" element={<Messages />} />
                 <Route path="events" element={<Events />} />
+                <Route path="event-reservations" element={<EventReservations />} />
               </Route>
             </Route>
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

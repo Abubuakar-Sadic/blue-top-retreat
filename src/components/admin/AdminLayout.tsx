@@ -1,9 +1,9 @@
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
-import { LayoutDashboard, BedDouble, CalendarCheck, CreditCard, MessageSquare, LogOut, Crown, Sparkles } from "lucide-react";
+import { LayoutDashboard, BedDouble, CalendarCheck, CreditCard, MessageSquare, LogOut, Crown, Sparkles, Ticket } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import {
   Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarMenu,
-  SidebarMenuButton, SidebarMenuItem, SidebarProvider, SidebarTrigger, SidebarHeader, SidebarFooter,
+  SidebarMenuButton, SidebarMenuItem, SidebarProvider, SidebarTrigger, SidebarHeader, SidebarFooter, useSidebar,
 } from "@/components/ui/sidebar";
 import { toast } from "sonner";
 
@@ -12,6 +12,7 @@ const items = [
   { to: "/admin/rooms", label: "Rooms", icon: BedDouble },
   { to: "/admin/bookings", label: "Bookings", icon: CalendarCheck },
   { to: "/admin/events", label: "Events", icon: Sparkles },
+  { to: "/admin/event-reservations", label: "Reservations", icon: Ticket },
   { to: "/admin/payments", label: "Payments", icon: CreditCard },
   { to: "/admin/messages", label: "Messages", icon: MessageSquare },
 ];
@@ -19,11 +20,13 @@ const items = [
 const AdminSidebar = () => {
   const { signOut, user } = useAuth();
   const navigate = useNavigate();
+  const { isMobile, setOpenMobile } = useSidebar();
   const handleLogout = async () => {
     await signOut();
     toast.success("Signed out");
     navigate("/auth", { replace: true });
   };
+  const closeMobile = () => { if (isMobile) setOpenMobile(false); };
   return (
     <Sidebar collapsible="icon" className="border-r border-[hsl(var(--gold))]/15">
       <SidebarHeader className="border-b border-border/50 py-4">
@@ -44,7 +47,7 @@ const AdminSidebar = () => {
               {items.map((it) => (
                 <SidebarMenuItem key={it.to}>
                   <SidebarMenuButton asChild tooltip={it.label}>
-                    <NavLink to={it.to} end={it.end}
+                    <NavLink to={it.to} end={it.end} onClick={closeMobile}
                       className={({ isActive }) =>
                         `flex items-center gap-2 ${isActive ? "!bg-[hsl(var(--gold))]/15 !text-[hsl(var(--gold-dark))] font-medium" : ""}`}>
                       <it.icon className="w-4 h-4" />

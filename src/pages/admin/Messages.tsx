@@ -13,7 +13,13 @@ const Messages = () => {
     const { data } = await supabase.from("contact_messages").select("*").order("created_at", { ascending: false });
     setItems(data ?? []); setLoading(false);
   };
-  useEffect(() => { load(); }, []);
+  useEffect(() => {
+    load();
+    const ch = supabase.channel("admin-messages")
+      .on("postgres_changes", { event: "*", schema: "public", table: "contact_messages" }, load)
+      .subscribe();
+    return () => { supabase.removeChannel(ch); };
+  }, []);
 
   const remove = async (id: string) => {
     const { error } = await supabase.from("contact_messages").delete().eq("id", id);

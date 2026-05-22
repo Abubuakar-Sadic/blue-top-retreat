@@ -4,6 +4,7 @@ import { Calendar, MapPin, Clock } from "lucide-react";
 import { format } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 import partyImg from "@/assets/event-party.jpg";
+import ReserveEventModal from "./ReserveEventModal";
 
 type EventRow = {
   id: string;
@@ -17,6 +18,7 @@ type EventRow = {
 const UpcomingEvents = () => {
   const [events, setEvents] = useState<EventRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [reserving, setReserving] = useState<EventRow | null>(null);
 
   const load = async () => {
     const { data } = await supabase
@@ -79,13 +81,18 @@ const UpcomingEvents = () => {
                   {ev.location && <div className="flex items-center gap-2"><MapPin className="w-4 h-4 text-gold" />{ev.location}</div>}
                 </div>
                 {ev.description && <p className="text-sm text-muted-foreground mt-4 line-clamp-3">{ev.description}</p>}
-                <a href="#booking" className="inline-block mt-5 text-gold text-sm font-semibold hover:underline">
+                <button onClick={() => setReserving(ev)} className="inline-block mt-5 text-gold text-sm font-semibold hover:underline">
                   Reserve Your Spot →
-                </a>
+                </button>
               </div>
             </motion.article>
           ))}
         </div>
+        <ReserveEventModal
+          open={!!reserving}
+          onOpenChange={(o) => !o && setReserving(null)}
+          event={reserving ? { id: reserving.id, title: reserving.title } : null}
+        />
       </div>
     </section>
   );

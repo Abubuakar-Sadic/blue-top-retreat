@@ -16,6 +16,7 @@ export type Database = {
     Tables: {
       bookings: {
         Row: {
+          booking_code: string | null
           check_in: string
           check_out: string
           created_at: string
@@ -32,6 +33,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          booking_code?: string | null
           check_in: string
           check_out: string
           created_at?: string
@@ -48,6 +50,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          booking_code?: string | null
           check_in?: string
           check_out?: string
           created_at?: string
@@ -105,6 +108,59 @@ export type Database = {
           subject?: string | null
         }
         Relationships: []
+      }
+      event_reservations: {
+        Row: {
+          attendee_email: string | null
+          attendee_name: string
+          attendee_phone: string
+          created_at: string
+          event_id: string | null
+          event_title: string | null
+          id: string
+          notes: string | null
+          party_size: number
+          reservation_code: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          attendee_email?: string | null
+          attendee_name: string
+          attendee_phone: string
+          created_at?: string
+          event_id?: string | null
+          event_title?: string | null
+          id?: string
+          notes?: string | null
+          party_size?: number
+          reservation_code?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          attendee_email?: string | null
+          attendee_name?: string
+          attendee_phone?: string
+          created_at?: string
+          event_id?: string | null
+          event_title?: string | null
+          id?: string
+          notes?: string | null
+          party_size?: number
+          reservation_code?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_reservations_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       events: {
         Row: {

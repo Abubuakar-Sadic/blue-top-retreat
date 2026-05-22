@@ -1,33 +1,41 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import roomDeluxe from "@/assets/room-deluxe.jpg";
-import roomSuite from "@/assets/room-suite.jpg";
-import roomStandard from "@/assets/room-standard.jpg";
+import { supabase } from "@/integrations/supabase/client";
+import roomFallback from "@/assets/room-deluxe.jpg";
 import RoomDetailModal from "./RoomDetailModal";
+import BookRoomModal from "./BookRoomModal";
 
-const rooms = [
-  {
-    name: "Standard Room",
-    description: "Comfortable twin beds with modern amenities, perfect for business travelers and short stays.",
-    price: "GHS 350 / night",
-    image: roomStandard,
-  },
-  {
-    name: "Deluxe Room",
-    description: "Spacious king-size bedroom with premium furnishings, city views, and a luxurious en-suite bathroom.",
-    price: "GHS 550 / night",
-    image: roomDeluxe,
-  },
-  {
-    name: "Executive Suite",
-    description: "Our finest accommodation featuring a separate living area, premium décor, and VIP amenities.",
-    price: "GHS 850 / night",
-    image: roomSuite,
-  },
-];
+type Room = {
+  id: string;
+  room_name: string;
+  description: string | null;
+  price_per_night: number;
+  capacity: number;
+  featured_image: string | null;
+  is_available: boolean;
+};
 
 const RoomsSection = () => {
-  const [selectedRoom, setSelectedRoom] = useState<typeof rooms[number] | null>(null);
+  const [rooms, setRooms] = useState<Room[]>([]);
+  const [selectedRoom, setSelectedRoom] = useState<Room | null>(null);
+  const [bookingRoom, setBookingRoom] = useState<Room | null>(null);
+
+  useEffect(() => {
+    const load = async () => {
+      const { data } = await supabase
+        .from("rooms")
+        .select("id, room_name, description, price_per_night, capacity, featured_image, is_available")
+        .eq("is_available", true)
+        .order("price_per_night", { ascending: true });
+      setRooms((data ?? []) as Room[]);
+    };
+    load();
+    const channel = supabase
+      .channel("public-rooms")
+      .on("postgres_changes", { event: "*", schema: "public", table: "rooms" }, load)
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, []);
 
   return (
   <section id="rooms" className="section-padding bg-background">
@@ -41,10 +49,13 @@ const RoomsSection = () => {
         </p>
       </div>
 
+      {rooms.length === 0 ? (
+        <p className="text-center text-muted-foreground">No rooms available right now. Please check back soon.</p>
+      ) : (
       <div className="grid md:grid-cols-3 gap-8">
         {rooms.map((room, i) => (
           <motion.div
-            key={room.name}
+            key={room.id}
             initial={{ opacity: 0, y: 40 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
@@ -53,8 +64,8 @@ const RoomsSection = () => {
           >
             <div className="overflow-hidden aspect-[4/3]">
               <img
-                src={room.image}
-                alt={room.name}
+                src={room.featured_image || roomFallback}
+                alt={room.room_name}
                 loading="lazy"
                 width={800}
                 height={600}
@@ -62,10 +73,10 @@ const RoomsSection = () => {
               />
             </div>
             <div className="p-6">
-              <h3 className="font-display text-xl font-semibold text-foreground mb-2">{room.name}</h3>
+              <h3 className="font-display text-xl font-semibold text-foreground mb-2">{room.room_name}</h3>
               <p className="text-muted-foreground text-sm mb-4">{room.description}</p>
-              <div className="flex items-center justify-between">
-                <span className="text-gold font-semibold">{room.price}</span>
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-gold font-semibold">GHS {Number(room.price_per_night).toLocaleString()} / night</span>
                 <button
                   onClick={() => setSelectedRoom(room)}
                   className="text-sm font-medium text-navy hover:text-gold transition-colors"
@@ -73,14 +84,29 @@ const RoomsSection = () => {
                   View Details →
                 </button>
               </div>
+              <button onClick={() => setBookingRoom(room)} className="btn-gold w-full text-sm py-2">
+                Book Room
+              </button>
             </div>
           </motion.div>
         ))}
       </div>
+      )}
       <RoomDetailModal
         open={!!selectedRoom}
         onOpenChange={(open) => !open && setSelectedRoom(null)}
         room={selectedRoom}
+        onBook={() => {
+          if (selectedRoom) {
+            setBookingRoom(selectedRoom);
+            setSelectedRoom(null);
+          }
+        }}
+      />
+      <BookRoomModal
+        open={!!bookingRoom}
+        onOpenChange={(open) => !open && setBookingRoom(null)}
+        room={bookingRoom}
       />
     </div>
   </section>

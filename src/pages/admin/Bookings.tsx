@@ -18,7 +18,13 @@ const Bookings = () => {
     setItems(data ?? []);
     setLoading(false);
   };
-  useEffect(() => { load(); }, []);
+  useEffect(() => {
+    load();
+    const ch = supabase.channel("admin-bookings")
+      .on("postgres_changes", { event: "*", schema: "public", table: "bookings" }, load)
+      .subscribe();
+    return () => { supabase.removeChannel(ch); };
+  }, []);
 
   const updateStatus = async (id: string, status: string) => {
     const { error } = await supabase.from("bookings").update({ status }).eq("id", id);
@@ -57,6 +63,7 @@ const Bookings = () => {
             <table className="w-full text-sm">
               <thead className="bg-muted/40">
                 <tr className="text-left text-xs uppercase tracking-wider text-muted-foreground">
+                  <th className="px-5 py-3">Code</th>
                   <th className="px-5 py-3">Customer</th>
                   <th className="px-5 py-3">Room</th>
                   <th className="px-5 py-3">Dates</th>
@@ -66,9 +73,10 @@ const Bookings = () => {
                 </tr>
               </thead>
               <tbody>
-                {filtered.length === 0 && <tr><td colSpan={6} className="px-5 py-10 text-center text-muted-foreground">No bookings found</td></tr>}
+                {filtered.length === 0 && <tr><td colSpan={7} className="px-5 py-10 text-center text-muted-foreground">No bookings found</td></tr>}
                 {filtered.map((b) => (
                   <tr key={b.id} className="border-t border-border/40 hover:bg-muted/30">
+                    <td className="px-5 py-3"><span className="font-mono text-xs text-gold font-semibold">{b.booking_code ?? "—"}</span></td>
                     <td className="px-5 py-3">
                       <div className="font-medium">{b.customer_name}</div>
                       <div className="text-xs text-muted-foreground">{b.customer_phone}</div>
@@ -107,6 +115,7 @@ const Bookings = () => {
           <DialogHeader><DialogTitle className="font-display text-2xl">Booking Details</DialogTitle></DialogHeader>
           {viewing && (
             <div className="space-y-3 text-sm">
+              <Row label="Booking Code" value={<span className="font-mono text-gold font-semibold">{viewing.booking_code}</span>} />
               <Row label="Customer" value={viewing.customer_name} />
               <Row label="Phone" value={viewing.customer_phone} />
               <Row label="Email" value={viewing.customer_email || "—"} />
