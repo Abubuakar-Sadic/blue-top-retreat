@@ -114,19 +114,3 @@ const RoomsSection = () => {
 };
 
 export default RoomsSection;
-              </div>
-            </div>
-          </motion.div>
-        ))}
-      </div>
-      <RoomDetailModal
-        open={!!selectedRoom}
-        onOpenChange={(open) => !open && setSelectedRoom(null)}
-        room={selectedRoom}
-      />
-    </div>
-  </section>
-  );
-};
-
-export default RoomsSection;
