@@ -7,16 +7,6 @@ import {
 } from "@/components/ui/dialog";
 import { Wifi, Wind, Tv, Coffee, Bath, Car, UtensilsCrossed, Shield } from "lucide-react";
 
-interface RoomDetail {
-  name: string;
-  description: string;
-  price: string;
-  image: string;
-  longDescription: string;
-  amenities: { icon: React.ReactNode; label: string }[];
-  features: string[];
-}
-
 const amenityIcons = {
   wifi: <Wifi className="w-5 h-5" />,
   ac: <Wind className="w-5 h-5" />,
@@ -28,7 +18,7 @@ const amenityIcons = {
   security: <Shield className="w-5 h-5" />,
 };
 
-export const roomDetails: Record<string, Omit<RoomDetail, "name" | "description" | "price" | "image">> = {
+const presetDetails: Record<string, { longDescription: string; amenities: { icon: React.ReactNode; label: string }[]; features: string[] }> = {
   "Standard Room": {
     longDescription:
       "Our Standard Room offers a comfortable retreat with twin beds, ideal for business travelers and short getaways. Modern furnishings meet warm Ghanaian hospitality in a clean, well-appointed space.",
@@ -79,72 +69,84 @@ export const roomDetails: Record<string, Omit<RoomDetail, "name" | "description"
   },
 };
 
+type RoomLike = {
+  id?: string;
+  room_name: string;
+  description?: string | null;
+  price_per_night?: number;
+  featured_image?: string | null;
+  capacity?: number;
+  amenities?: string[];
+};
+
 interface RoomDetailModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  room: { name: string; description: string; price: string; image: string } | null;
+  room: RoomLike | null;
+  onBook?: () => void;
 }
 
-const RoomDetailModal = ({ open, onOpenChange, room }: RoomDetailModalProps) => {
+const RoomDetailModal = ({ open, onOpenChange, room, onBook }: RoomDetailModalProps) => {
   if (!room) return null;
-  const details = roomDetails[room.name];
-  if (!details) return null;
+  const preset = presetDetails[room.room_name];
+  const longDescription = preset?.longDescription ?? room.description ?? "";
+  const features = preset?.features ?? [];
+  const amenityLabels = (room.amenities && room.amenities.length > 0) ? room.amenities : preset?.amenities.map(a => a.label) ?? [];
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto p-0 bg-background border-gold/20">
         <div className="overflow-hidden rounded-t-lg">
           <img
-            src={room.image}
-            alt={room.name}
+            src={room.featured_image || "/placeholder.svg"}
+            alt={room.room_name}
             className="w-full aspect-[16/9] object-cover"
           />
         </div>
         <div className="p-6 space-y-6">
           <DialogHeader>
-            <DialogTitle className="font-display text-2xl text-foreground">{room.name}</DialogTitle>
+            <DialogTitle className="font-display text-2xl text-foreground">{room.room_name}</DialogTitle>
             <DialogDescription className="text-muted-foreground text-base mt-2">
-              {details.longDescription}
+              {longDescription}
             </DialogDescription>
           </DialogHeader>
 
           <div className="flex items-center gap-2">
-            <span className="text-gold font-display text-xl font-semibold">{room.price}</span>
+            <span className="text-gold font-display text-xl font-semibold">GHS {Number(room.price_per_night ?? 0).toLocaleString()} / night</span>
           </div>
 
           {/* Amenities */}
-          <div>
+          {amenityLabels.length > 0 && <div>
             <h3 className="font-display text-lg font-semibold text-foreground mb-3">Amenities</h3>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-              {details.amenities.map((a) => (
-                <div key={a.label} className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <span className="text-gold">{a.icon}</span>
-                  {a.label}
+              {amenityLabels.map((label) => (
+                <div key={label} className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <span className="w-1.5 h-1.5 rounded-full bg-gold shrink-0" />
+                  {label}
                 </div>
               ))}
             </div>
-          </div>
+          </div>}
 
           {/* Features */}
-          <div>
+          {features.length > 0 && <div>
             <h3 className="font-display text-lg font-semibold text-foreground mb-3">Room Features</h3>
             <ul className="grid grid-cols-2 gap-2">
-              {details.features.map((f) => (
+              {features.map((f) => (
                 <li key={f} className="text-sm text-muted-foreground flex items-center gap-2">
                   <span className="w-1.5 h-1.5 rounded-full bg-gold shrink-0" />
                   {f}
                 </li>
               ))}
             </ul>
-          </div>
+          </div>}
 
-          <a
-            href="#booking"
-            onClick={() => onOpenChange(false)}
+          <button
+            onClick={() => { onBook ? onBook() : onOpenChange(false); }}
             className="inline-block w-full text-center py-3 rounded-lg bg-gold text-navy-dark font-semibold hover:bg-gold/90 transition-colors"
           >
             Book This Room
-          </a>
+          </button>
         </div>
       </DialogContent>
     </Dialog>

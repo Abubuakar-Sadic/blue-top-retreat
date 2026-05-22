@@ -3,7 +3,7 @@ import { LayoutDashboard, BedDouble, CalendarCheck, CreditCard, MessageSquare, L
 import { useAuth } from "@/hooks/useAuth";
 import {
   Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarMenu,
-  SidebarMenuButton, SidebarMenuItem, SidebarProvider, SidebarTrigger, SidebarHeader, SidebarFooter,
+  SidebarMenuButton, SidebarMenuItem, SidebarProvider, SidebarTrigger, SidebarHeader, SidebarFooter, useSidebar,
 } from "@/components/ui/sidebar";
 import { toast } from "sonner";
 
@@ -19,11 +19,13 @@ const items = [
 const AdminSidebar = () => {
   const { signOut, user } = useAuth();
   const navigate = useNavigate();
+  const { isMobile, setOpenMobile } = useSidebar();
   const handleLogout = async () => {
     await signOut();
     toast.success("Signed out");
     navigate("/auth", { replace: true });
   };
+  const closeMobile = () => { if (isMobile) setOpenMobile(false); };
   return (
     <Sidebar collapsible="icon" className="border-r border-[hsl(var(--gold))]/15">
       <SidebarHeader className="border-b border-border/50 py-4">
@@ -44,7 +46,7 @@ const AdminSidebar = () => {
               {items.map((it) => (
                 <SidebarMenuItem key={it.to}>
                   <SidebarMenuButton asChild tooltip={it.label}>
-                    <NavLink to={it.to} end={it.end}
+                    <NavLink to={it.to} end={it.end} onClick={closeMobile}
                       className={({ isActive }) =>
                         `flex items-center gap-2 ${isActive ? "!bg-[hsl(var(--gold))]/15 !text-[hsl(var(--gold-dark))] font-medium" : ""}`}>
                       <it.icon className="w-4 h-4" />
