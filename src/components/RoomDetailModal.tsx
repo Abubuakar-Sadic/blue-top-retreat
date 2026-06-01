@@ -115,7 +115,7 @@ const RoomDetailModal = ({ open, onOpenChange, room, onBook }: RoomDetailModalPr
                 return (
                   <div key={label} className="flex items-center gap-3 rounded-lg border border-border/60 bg-card px-3 py-2.5">
                     <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-gold/10 text-gold">
-                      <Icon className="w-4.5 h-4.5" />
+                      <Icon className="h-[18px] w-[18px]" />
                     </span>
                     <span className="text-sm font-medium text-foreground leading-tight">{label}</span>
                   </div>
