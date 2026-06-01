@@ -27,9 +27,11 @@ Deno.serve(async (req) => {
     if (to.startsWith('0')) to = '+233' + to.slice(1);
     else if (!to.startsWith('+')) to = '+' + to;
 
-    const subject = type === 'event'
-      ? `event "${event ?? ''}"`
-      : `room "${room ?? ''}"`;
+    const subject = type === 'venue'
+      ? `venue booking for "${event ?? ''}"`
+      : type === 'event'
+        ? `event "${event ?? ''}"`
+        : `room "${room ?? ''}"`;
     const body = `Hi ${name ?? 'there'}, your Blue Top Villa ${subject} booking is received. Code: ${code}. Keep this for check-in. Call 059 554 3157 for help.`;
 
     const res = await fetch('https://connector-gateway.lovable.dev/twilio/Messages.json', {
