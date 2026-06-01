@@ -3,7 +3,7 @@ import { motion } from "framer-motion";
 import weddingImg from "@/assets/event-wedding.jpg";
 import partyImg from "@/assets/event-party.jpg";
 import corporateImg from "@/assets/event-corporate.jpg";
-import ReserveEventModal from "./ReserveEventModal";
+import VenueReservationModal from "./VenueReservationModal";
 
 const events = [
   { title: "Weddings", alt: "Luxury wedding celebration setup", subtitle: "Your dream celebration begins here", image: weddingImg },
@@ -12,7 +12,7 @@ const events = [
 ];
 
 const EventsSection = () => {
-  const [planning, setPlanning] = useState<{ title: string } | null>(null);
+  const [planning, setPlanning] = useState<string | null>(null);
   return (
   <section id="events" className="section-padding bg-navy-dark">
     <div className="section-container">
@@ -47,14 +47,14 @@ const EventsSection = () => {
             <div className="absolute bottom-0 left-0 right-0 p-6">
               <h3 className="font-display text-2xl font-bold text-white mb-1">{ev.title}</h3>
               <p className="text-white/70 text-sm">{ev.subtitle}</p>
-              <button onClick={() => setPlanning({ title: ev.title })} className="inline-block mt-3 text-gold text-sm font-medium hover:underline">
+              <button onClick={() => setPlanning(ev.title)} className="inline-block mt-3 text-gold text-sm font-medium hover:underline">
                 Plan Your Event →
               </button>
             </div>
           </motion.div>
         ))}
       </div>
-      <ReserveEventModal open={!!planning} onOpenChange={(o) => !o && setPlanning(null)} event={planning} />
+      <VenueReservationModal open={!!planning} onOpenChange={(o) => !o && setPlanning(null)} presetType={planning} />
     </div>
   </section>
   );
