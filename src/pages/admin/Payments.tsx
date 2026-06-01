@@ -8,11 +8,19 @@ const Payments = () => {
   const [items, setItems] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
+  const load = async () => {
+    const { data } = await supabase
+      .from("payments")
+      .select("*, bookings(customer_name, customer_phone, booking_code, status)")
+      .order("created_at", { ascending: false });
+    setItems(data ?? []); setLoading(false);
+  };
   useEffect(() => {
-    (async () => {
-      const { data } = await supabase.from("payments").select("*, bookings(customer_name, customer_phone)").order("created_at", { ascending: false });
-      setItems(data ?? []); setLoading(false);
-    })();
+    load();
+    const ch = supabase.channel("admin-payments")
+      .on("postgres_changes", { event: "*", schema: "public", table: "payments" }, load)
+      .subscribe();
+    return () => { supabase.removeChannel(ch); };
   }, []);
 
   const successful = items.filter((p) => p.status === "successful");
@@ -43,7 +51,7 @@ const Payments = () => {
               <thead className="bg-muted/40">
                 <tr className="text-left text-xs uppercase tracking-wider text-muted-foreground">
                   <th className="px-5 py-3">Customer</th>
-                  <th className="px-5 py-3">Reference</th>
+                  <th className="px-5 py-3">Booking</th>
                   <th className="px-5 py-3">Method</th>
                   <th className="px-5 py-3">Date</th>
                   <th className="px-5 py-3">Status</th>
@@ -55,7 +63,10 @@ const Payments = () => {
                 {items.map((p) => (
                   <tr key={p.id} className="border-t border-border/40 hover:bg-muted/30">
                     <td className="px-5 py-3 font-medium">{p.bookings?.customer_name ?? "—"}</td>
-                    <td className="px-5 py-3 text-muted-foreground font-mono text-xs">{p.transaction_reference ?? "—"}</td>
+                    <td className="px-5 py-3">
+                      <div className="font-mono text-xs text-gold font-semibold">{p.bookings?.booking_code ?? p.transaction_reference ?? "—"}</div>
+                      {p.bookings?.status && <div className="mt-0.5"><StatusBadge status={p.bookings.status} /></div>}
+                    </td>
                     <td className="px-5 py-3 text-muted-foreground">{p.payment_method ?? "—"}</td>
                     <td className="px-5 py-3 text-muted-foreground text-xs">{p.paid_at ? format(new Date(p.paid_at), "PP") : format(new Date(p.created_at), "PP")}</td>
                     <td className="px-5 py-3"><StatusBadge status={p.status} /></td>

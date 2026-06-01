@@ -5,68 +5,37 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
-import { Wifi, Wind, Tv, Coffee, Bath, Car, UtensilsCrossed, Shield } from "lucide-react";
+import {
+  Wifi, Wind, Tv, Coffee, Bath, Car, UtensilsCrossed, Shield, Refrigerator,
+  Waves, Dumbbell, BedDouble, Wine, Lock, Phone, Sparkles, Users, type LucideIcon,
+} from "lucide-react";
 
-const amenityIcons = {
-  wifi: <Wifi className="w-5 h-5" />,
-  ac: <Wind className="w-5 h-5" />,
-  tv: <Tv className="w-5 h-5" />,
-  coffee: <Coffee className="w-5 h-5" />,
-  bath: <Bath className="w-5 h-5" />,
-  parking: <Car className="w-5 h-5" />,
-  dining: <UtensilsCrossed className="w-5 h-5" />,
-  security: <Shield className="w-5 h-5" />,
+// Resolve an amenity label (admin free-text) to a fitting icon
+const resolveAmenityIcon = (label: string): LucideIcon => {
+  const l = label.toLowerCase();
+  if (/wi-?fi|internet|network/.test(l)) return Wifi;
+  if (/air ?con|a\/?c\b|climate|cooling/.test(l)) return Wind;
+  if (/tv|television|netflix|screen/.test(l)) return Tv;
+  if (/coffee|tea|nespresso|kettle/.test(l)) return Coffee;
+  if (/fridge|mini.?bar|refrig/.test(l)) return Refrigerator;
+  if (/bath|shower|jacuzzi|tub|toiletr/.test(l)) return Bath;
+  if (/park/.test(l)) return Car;
+  if (/din|breakfast|restaurant|food|meal/.test(l)) return UtensilsCrossed;
+  if (/secur|safe|guard|cctv/.test(l)) return Shield;
+  if (/pool|swim|water/.test(l)) return Waves;
+  if (/gym|fitness|workout/.test(l)) return Dumbbell;
+  if (/bed|king|queen|twin/.test(l)) return BedDouble;
+  if (/bar|wine|drink|minibar/.test(l)) return Wine;
+  if (/lock|key|access/.test(l)) return Lock;
+  if (/phone|call/.test(l)) return Phone;
+  if (/concierge|service|housekeep/.test(l)) return Users;
+  return Sparkles;
 };
 
-const presetDetails: Record<string, { longDescription: string; amenities: { icon: React.ReactNode; label: string }[]; features: string[] }> = {
-  "Standard Room": {
-    longDescription:
-      "Our Standard Room offers a comfortable retreat with twin beds, ideal for business travelers and short getaways. Modern furnishings meet warm Ghanaian hospitality in a clean, well-appointed space.",
-    amenities: [
-      { icon: amenityIcons.wifi, label: "Free Wi-Fi" },
-      { icon: amenityIcons.ac, label: "Air Conditioning" },
-      { icon: amenityIcons.tv, label: "Flat-screen TV" },
-      { icon: amenityIcons.bath, label: "Private Bathroom" },
-      { icon: amenityIcons.security, label: "24/7 Security" },
-    ],
-    features: ["Twin beds", "Work desk", "Wardrobe", "Daily housekeeping", "Complimentary toiletries"],
-  },
-  "Deluxe Room": {
-    longDescription:
-      "Step into luxury with our Deluxe Room featuring a king-size bed, premium furnishings, and stunning city views. The spacious en-suite bathroom and elegant décor make every stay memorable.",
-    amenities: [
-      { icon: amenityIcons.wifi, label: "Free Wi-Fi" },
-      { icon: amenityIcons.ac, label: "Air Conditioning" },
-      { icon: amenityIcons.tv, label: "Smart TV" },
-      { icon: amenityIcons.coffee, label: "Coffee Maker" },
-      { icon: amenityIcons.bath, label: "Luxury Bathroom" },
-      { icon: amenityIcons.parking, label: "Free Parking" },
-    ],
-    features: ["King-size bed", "City views", "Mini fridge", "Bathrobe & slippers", "Premium toiletries", "Room service"],
-  },
-  "Executive Suite": {
-    longDescription:
-      "Our finest accommodation, the Executive Suite offers a separate living area, premium décor, and VIP amenities. Perfect for discerning guests who demand the very best in comfort and style.",
-    amenities: [
-      { icon: amenityIcons.wifi, label: "High-speed Wi-Fi" },
-      { icon: amenityIcons.ac, label: "Climate Control" },
-      { icon: amenityIcons.tv, label: "65\" Smart TV" },
-      { icon: amenityIcons.coffee, label: "Nespresso Machine" },
-      { icon: amenityIcons.bath, label: "Spa Bathroom" },
-      { icon: amenityIcons.parking, label: "VIP Parking" },
-      { icon: amenityIcons.dining, label: "In-room Dining" },
-      { icon: amenityIcons.security, label: "24/7 Concierge" },
-    ],
-    features: [
-      "King-size bed",
-      "Separate living area",
-      "Panoramic views",
-      "Walk-in closet",
-      "Jacuzzi tub",
-      "Complimentary breakfast",
-      "Late checkout",
-    ],
-  },
+const presetFeatures: Record<string, string[]> = {
+  "Standard Room": ["Twin beds", "Work desk", "Wardrobe", "Daily housekeeping", "Complimentary toiletries"],
+  "Deluxe Room": ["King-size bed", "City views", "Mini fridge", "Bathrobe & slippers", "Premium toiletries", "Room service"],
+  "Executive Suite": ["King-size bed", "Separate living area", "Panoramic views", "Walk-in closet", "Jacuzzi tub", "Complimentary breakfast", "Late checkout"],
 };
 
 type RoomLike = {
@@ -75,6 +44,7 @@ type RoomLike = {
   description?: string | null;
   price_per_night?: number;
   featured_image?: string | null;
+  gallery_images?: string[] | null;
   capacity?: number;
   amenities?: string[];
 };
@@ -88,10 +58,10 @@ interface RoomDetailModalProps {
 
 const RoomDetailModal = ({ open, onOpenChange, room, onBook }: RoomDetailModalProps) => {
   if (!room) return null;
-  const preset = presetDetails[room.room_name];
-  const longDescription = preset?.longDescription ?? room.description ?? "";
-  const features = preset?.features ?? [];
-  const amenityLabels = (room.amenities && room.amenities.length > 0) ? room.amenities : preset?.amenities.map(a => a.label) ?? [];
+  const longDescription = room.description ?? "";
+  const features = presetFeatures[room.room_name] ?? [];
+  const amenityLabels = room.amenities ?? [];
+  const gallery = (room.gallery_images ?? []).filter(Boolean);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -106,25 +76,51 @@ const RoomDetailModal = ({ open, onOpenChange, room, onBook }: RoomDetailModalPr
         <div className="p-6 space-y-6">
           <DialogHeader>
             <DialogTitle className="font-display text-2xl text-foreground">{room.room_name}</DialogTitle>
-            <DialogDescription className="text-muted-foreground text-base mt-2">
-              {longDescription}
-            </DialogDescription>
+            {longDescription && (
+              <DialogDescription className="text-muted-foreground text-base mt-2">
+                {longDescription}
+              </DialogDescription>
+            )}
           </DialogHeader>
 
-          <div className="flex items-center gap-2">
-            <span className="text-gold font-display text-xl font-semibold">GHS {Number(room.price_per_night ?? 0).toLocaleString()} / night</span>
+          {/* Price card */}
+          <div className="flex items-center justify-between rounded-xl border border-gold/30 bg-gold/5 px-5 py-4">
+            <div>
+              <p className="text-xs uppercase tracking-wider text-muted-foreground">Price per night</p>
+              <p className="text-gold font-display text-2xl font-bold">GHS {Number(room.price_per_night ?? 0).toLocaleString()}</p>
+            </div>
+            {room.capacity ? (
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Users className="w-4 h-4 text-gold" /> Sleeps {room.capacity}
+              </div>
+            ) : null}
           </div>
+
+          {/* Gallery */}
+          {gallery.length > 0 && (
+            <div className="grid grid-cols-3 gap-2">
+              {gallery.slice(0, 6).map((g, i) => (
+                <img key={i} src={g} alt={`${room.room_name} photo ${i + 1}`} loading="lazy"
+                  className="aspect-square w-full rounded-lg object-cover border border-border/60" />
+              ))}
+            </div>
+          )}
 
           {/* Amenities */}
           {amenityLabels.length > 0 && <div>
             <h3 className="font-display text-lg font-semibold text-foreground mb-3">Amenities</h3>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-              {amenityLabels.map((label) => (
-                <div key={label} className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <span className="w-1.5 h-1.5 rounded-full bg-gold shrink-0" />
-                  {label}
-                </div>
-              ))}
+              {amenityLabels.map((label) => {
+                const Icon = resolveAmenityIcon(label);
+                return (
+                  <div key={label} className="flex items-center gap-3 rounded-lg border border-border/60 bg-card px-3 py-2.5">
+                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-gold/10 text-gold">
+                      <Icon className="h-[18px] w-[18px]" />
+                    </span>
+                    <span className="text-sm font-medium text-foreground leading-tight">{label}</span>
+                  </div>
+                );
+              })}
             </div>
           </div>}
 

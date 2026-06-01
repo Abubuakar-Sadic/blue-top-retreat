@@ -1,0 +1,132 @@
+import { useEffect, useState } from "react";
+import { z } from "zod";
+import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
+} from "@/components/ui/dialog";
+import { CheckCircle2, Loader2, PartyPopper } from "lucide-react";
+
+const schema = z.object({
+  name: z.string().trim().min(1, "Name is required").max(100),
+  phone: z.string().trim().min(7, "Valid phone required").max(20),
+  email: z.string().trim().email("Invalid email").max(255).optional().or(z.literal("")),
+  eventType: z.string().trim().min(1, "Select an event type"),
+  eventDate: z.string().min(1, "Event date required"),
+  guestCount: z.number().min(1).max(2000),
+});
+
+type Props = {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  /** Optional prefill of the event type (e.g. "Weddings") */
+  presetType?: string | null;
+};
+
+const inputCls =
+  "w-full px-4 py-2.5 rounded-lg border border-border bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-gold/50 focus:border-gold transition-all text-sm";
+
+const EVENT_TYPES = ["Wedding", "Birthday", "Party", "Corporate Event", "Conference", "Funeral / Memorial", "Other"];
+
+const VenueReservationModal = ({ open, onOpenChange, presetType }: Props) => {
+  const [form, setForm] = useState({ name: "", phone: "", email: "", eventType: "", eventDate: "", guestCount: 50, notes: "" });
+  const [busy, setBusy] = useState(false);
+  const [code, setCode] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (open) {
+      const normalized = presetType ? presetType.replace(/s$/, "") : "";
+      const match = EVENT_TYPES.find((t) => t.toLowerCase().startsWith(normalized.toLowerCase())) || "";
+      setForm((f) => ({ ...f, eventType: match }));
+    } else {
+      setCode(null);
+      setForm({ name: "", phone: "", email: "", eventType: "", eventDate: "", guestCount: 50, notes: "" });
+    }
+  }, [open, presetType]);
+
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const parsed = schema.safeParse(form);
+    if (!parsed.success) { toast.error(parsed.error.issues[0].message); return; }
+    setBusy(true);
+    const { data, error } = await supabase.from("venue_reservations").insert({
+      customer_name: form.name,
+      customer_phone: form.phone,
+      customer_email: form.email || null,
+      event_type: form.eventType,
+      event_date: form.eventDate,
+      guest_count: form.guestCount,
+      notes: form.notes || null,
+    }).select("reservation_code").single();
+    setBusy(false);
+    if (error) { toast.error(error.message); return; }
+    const resCode = data?.reservation_code ?? null;
+    setCode(resCode);
+    supabase.functions.invoke("send-booking-sms", {
+      body: { phone: form.phone, code: resCode, type: "venue", name: form.name, event: form.eventType },
+    }).catch(() => {});
+    toast.success("Venue reservation request sent!");
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+        {code ? (
+          <div className="text-center py-6 space-y-4">
+            <CheckCircle2 className="w-14 h-14 text-emerald-500 mx-auto" />
+            <DialogHeader>
+              <DialogTitle className="font-display text-2xl text-center">Reservation Received</DialogTitle>
+              <DialogDescription className="text-center">
+                Your venue reservation code has been sent to {form.phone}. Our events team will contact you shortly to finalize the details.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="bg-muted rounded-lg py-4">
+              <p className="text-xs uppercase tracking-wider text-muted-foreground mb-1">Reservation Code</p>
+              <p className="font-mono text-2xl font-bold text-gold">{code}</p>
+            </div>
+            <button onClick={() => onOpenChange(false)} className="btn-gold w-full">Done</button>
+          </div>
+        ) : (
+          <>
+            <DialogHeader>
+              <DialogTitle className="font-display text-2xl flex items-center gap-2">
+                <PartyPopper className="w-5 h-5 text-gold" /> Reserve the Venue
+              </DialogTitle>
+              <DialogDescription>Host your event at Blue Top Villa. Tell us about your occasion.</DialogDescription>
+            </DialogHeader>
+            <form onSubmit={submit} className="space-y-3 mt-2">
+              <div className="grid sm:grid-cols-2 gap-3">
+                <input className={inputCls} placeholder="Full name" required value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
+                <input className={inputCls} placeholder="Phone (e.g. 059 554 3157)" required value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
+              </div>
+              <input className={inputCls} type="email" placeholder="Email (optional)" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
+              <div className="grid sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs text-muted-foreground mb-1">Event type</label>
+                  <select className={inputCls} required value={form.eventType} onChange={(e) => setForm({ ...form, eventType: e.target.value })}>
+                    <option value="">Select type</option>
+                    {EVENT_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs text-muted-foreground mb-1">Event date</label>
+                  <input className={inputCls} type="date" required value={form.eventDate} onChange={(e) => setForm({ ...form, eventDate: e.target.value })} />
+                </div>
+              </div>
+              <div>
+                <label className="block text-xs text-muted-foreground mb-1">Expected guests</label>
+                <input className={inputCls} type="number" min={1} max={2000} value={form.guestCount} onChange={(e) => setForm({ ...form, guestCount: Number(e.target.value) })} />
+              </div>
+              <textarea className={inputCls} rows={2} placeholder="Tell us about your event (theme, catering, setup needs...)" value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
+              <button type="submit" disabled={busy} className="btn-gold w-full disabled:opacity-60">
+                {busy ? <span className="inline-flex items-center gap-2"><Loader2 className="w-4 h-4 animate-spin" /> Submitting...</span> : "Request Venue Reservation"}
+              </button>
+            </form>
+          </>
+        )}
+      </DialogContent>
+    </Dialog>
+  );
+};
+
+export default VenueReservationModal;

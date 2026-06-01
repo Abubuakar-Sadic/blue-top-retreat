@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Loader2, Eye, Check, X, CheckCheck, Trash2 } from "lucide-react";
+import { Loader2, Eye, Trash2 } from "lucide-react";
 import { format } from "date-fns";
 import { StatusBadge } from "./Overview";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -85,20 +85,21 @@ const Bookings = () => {
                     <td className="px-5 py-3 text-muted-foreground text-xs">
                       {format(new Date(b.check_in), "MMM d")} → {format(new Date(b.check_out), "MMM d, yyyy")}
                     </td>
-                    <td className="px-5 py-3"><StatusBadge status={b.status} /></td>
+                    <td className="px-5 py-3">
+                      <select
+                        value={b.status}
+                        onChange={(e) => updateStatus(b.id, e.target.value)}
+                        className="rounded-md border border-border bg-background px-2 py-1 text-xs capitalize focus:outline-none focus:ring-2 focus:ring-gold/40"
+                      >
+                        {["pending", "approved", "completed", "rejected"].map((s) => (
+                          <option key={s} value={s} className="capitalize">{s}</option>
+                        ))}
+                      </select>
+                    </td>
                     <td className="px-5 py-3"><StatusBadge status={b.payment_status} /></td>
                     <td className="px-5 py-3">
                       <div className="flex gap-1 justify-end">
                         <button onClick={() => setViewing(b)} className="p-1.5 rounded-md hover:bg-muted" title="View"><Eye className="w-4 h-4" /></button>
-                        {b.status === "pending" && (
-                          <>
-                            <button onClick={() => updateStatus(b.id, "approved")} className="p-1.5 rounded-md hover:bg-emerald-500/10 text-emerald-600" title="Approve"><Check className="w-4 h-4" /></button>
-                            <button onClick={() => updateStatus(b.id, "rejected")} className="p-1.5 rounded-md hover:bg-rose-500/10 text-rose-600" title="Reject"><X className="w-4 h-4" /></button>
-                          </>
-                        )}
-                        {b.status === "approved" && (
-                          <button onClick={() => updateStatus(b.id, "completed")} className="p-1.5 rounded-md hover:bg-[hsl(var(--navy))]/10 text-[hsl(var(--navy))]" title="Complete"><CheckCheck className="w-4 h-4" /></button>
-                        )}
                         <button onClick={() => remove(b.id)} className="p-1.5 rounded-md hover:bg-destructive/10 text-destructive" title="Delete"><Trash2 className="w-4 h-4" /></button>
                       </div>
                     </td>

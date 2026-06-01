@@ -332,6 +332,51 @@ export type Database = {
         }
         Relationships: []
       }
+      venue_reservations: {
+        Row: {
+          created_at: string
+          customer_email: string | null
+          customer_name: string
+          customer_phone: string
+          event_date: string
+          event_type: string
+          guest_count: number
+          id: string
+          notes: string | null
+          reservation_code: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          customer_email?: string | null
+          customer_name: string
+          customer_phone: string
+          event_date: string
+          event_type: string
+          guest_count?: number
+          id?: string
+          notes?: string | null
+          reservation_code?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          customer_email?: string | null
+          customer_name?: string
+          customer_phone?: string
+          event_date?: string
+          event_type?: string
+          guest_count?: number
+          id?: string
+          notes?: string | null
+          reservation_code?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

@@ -1,5 +1,5 @@
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
-import { LayoutDashboard, BedDouble, CalendarCheck, CreditCard, MessageSquare, LogOut, Crown, Sparkles, Ticket } from "lucide-react";
+import { LayoutDashboard, BedDouble, CalendarCheck, CreditCard, MessageSquare, LogOut, Crown, Sparkles, Ticket, PartyPopper } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import {
   Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarMenu,
@@ -12,7 +12,8 @@ const items = [
   { to: "/admin/rooms", label: "Rooms", icon: BedDouble },
   { to: "/admin/bookings", label: "Bookings", icon: CalendarCheck },
   { to: "/admin/events", label: "Events", icon: Sparkles },
-  { to: "/admin/event-reservations", label: "Reservations", icon: Ticket },
+  { to: "/admin/event-reservations", label: "Event Attendance", icon: Ticket },
+  { to: "/admin/venue-reservations", label: "Venue Bookings", icon: PartyPopper },
   { to: "/admin/payments", label: "Payments", icon: CreditCard },
   { to: "/admin/messages", label: "Messages", icon: MessageSquare },
 ];

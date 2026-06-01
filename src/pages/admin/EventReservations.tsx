@@ -36,8 +36,8 @@ const EventReservations = () => {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="font-display text-3xl font-bold">Event Reservations</h1>
-        <p className="text-muted-foreground text-sm mt-1">"Reserve Your Spot" submissions from the public site.</p>
+        <h1 className="font-display text-3xl font-bold">Event Attendance</h1>
+        <p className="text-muted-foreground text-sm mt-1">"Reserve Your Spot" sign-ups to attend posted events (code prefix BKA).</p>
       </div>
 
       <div className="bg-card rounded-xl border border-border/60 shadow-sm overflow-hidden">
