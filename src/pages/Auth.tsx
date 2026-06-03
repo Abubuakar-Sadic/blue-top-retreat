@@ -13,18 +13,19 @@ const schema = z.object({
 
 const Auth = () => {
   const navigate = useNavigate();
-  const { user, isAdmin, loading } = useAuth();
+  const { user, loading } = useAuth();
   const [mode, setMode] = useState<"signin" | "signup">("signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [fullName, setFullName] = useState("");
   const [busy, setBusy] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
   useEffect(() => {
     if (!loading && user) {
-      navigate(isAdmin ? "/admin" : "/", { replace: true });
+      navigate("/admin", { replace: true });
     }
-  }, [user, isAdmin, loading, navigate]);
+  }, [user, loading, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -39,10 +40,13 @@ const Auth = () => {
         const { error } = await supabase.auth.signUp({
           email: parsed.data.email,
           password: parsed.data.password,
-          options: { emailRedirectTo: `${window.location.origin}/admin` },
+          options: {
+            emailRedirectTo: `${window.location.origin}/admin`,
+            data: { full_name: fullName.trim() },
+          },
         });
         if (error) throw error;
-        toast.success("Account created. You can sign in now.");
+        toast.success("Account created. Sign in — access is granted once the CEO approves your role.");
         setMode("signin");
       } else {
         const { error } = await supabase.auth.signInWithPassword({
@@ -68,6 +72,13 @@ const Auth = () => {
           <div className="gold-divider mt-4" />
         </div>
         <form onSubmit={handleSubmit} className="space-y-4">
+          {mode === "signup" && (
+            <div>
+              <label htmlFor="auth-name" className="block text-sm font-medium mb-1.5">Full name</label>
+              <input id="auth-name" type="text" value={fullName} onChange={(e) => setFullName(e.target.value)} required
+                className="w-full px-4 py-3 rounded-lg border border-border bg-background focus:outline-none focus:ring-2 focus:ring-gold/50" />
+            </div>
+          )}
           <div>
             <label htmlFor="auth-email" className="block text-sm font-medium mb-1.5">Email</label>
             <input id="auth-email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required
