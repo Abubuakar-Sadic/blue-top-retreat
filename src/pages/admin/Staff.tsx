@@ -61,7 +61,7 @@ const Staff = () => {
   const assignRole = async (uid: string, role: string) => {
     setBusy(uid);
     // Enforce a single staff role: clear existing staff roles, then grant the new one.
-    const { error: delErr } = await supabase.from("user_roles").delete().eq("user_id", uid).in("role", GRANTABLE as unknown as string[]);
+    const { error: delErr } = await supabase.from("user_roles").delete().eq("user_id", uid).in("role", [...GRANTABLE]);
     if (delErr) { setBusy(null); return toast.error(delErr.message); }
     const { error } = await supabase.from("user_roles").insert({ user_id: uid, role: role as never });
     setBusy(null);
@@ -72,7 +72,7 @@ const Staff = () => {
 
   const revoke = async (uid: string) => {
     setBusy(uid);
-    const { error } = await supabase.from("user_roles").delete().eq("user_id", uid).in("role", GRANTABLE as unknown as string[]);
+    const { error } = await supabase.from("user_roles").delete().eq("user_id", uid).in("role", [...GRANTABLE]);
     setBusy(null);
     if (error) return toast.error(error.message);
     toast.success("Access revoked");
