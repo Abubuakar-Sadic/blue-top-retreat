@@ -72,6 +72,13 @@ const Auth = () => {
           <div className="gold-divider mt-4" />
         </div>
         <form onSubmit={handleSubmit} className="space-y-4">
+          {mode === "signup" && (
+            <div>
+              <label htmlFor="auth-name" className="block text-sm font-medium mb-1.5">Full name</label>
+              <input id="auth-name" type="text" value={fullName} onChange={(e) => setFullName(e.target.value)} required
+                className="w-full px-4 py-3 rounded-lg border border-border bg-background focus:outline-none focus:ring-2 focus:ring-gold/50" />
+            </div>
+          )}
           <div>
             <label htmlFor="auth-email" className="block text-sm font-medium mb-1.5">Email</label>
             <input id="auth-email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required
