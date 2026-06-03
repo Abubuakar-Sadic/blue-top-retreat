@@ -1,5 +1,5 @@
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
-import { LayoutDashboard, BedDouble, CalendarCheck, CreditCard, MessageSquare, LogOut, Crown, Sparkles, Ticket, PartyPopper } from "lucide-react";
+import { LayoutDashboard, BedDouble, CalendarCheck, CreditCard, MessageSquare, LogOut, Crown, Sparkles, Ticket, PartyPopper, Users } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import {
   Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarMenu,
@@ -7,19 +7,21 @@ import {
 } from "@/components/ui/sidebar";
 import { toast } from "sonner";
 
-const items = [
-  { to: "/admin", label: "Overview", icon: LayoutDashboard, end: true },
-  { to: "/admin/rooms", label: "Rooms", icon: BedDouble },
-  { to: "/admin/bookings", label: "Bookings", icon: CalendarCheck },
-  { to: "/admin/events", label: "Events", icon: Sparkles },
-  { to: "/admin/event-reservations", label: "Event Attendance", icon: Ticket },
-  { to: "/admin/venue-reservations", label: "Venue Bookings", icon: PartyPopper },
-  { to: "/admin/payments", label: "Payments", icon: CreditCard },
-  { to: "/admin/messages", label: "Messages", icon: MessageSquare },
+type Level = "staff" | "manager" | "admin";
+const items: { to: string; label: string; icon: typeof LayoutDashboard; end?: boolean; level: Level }[] = [
+  { to: "/admin", label: "Overview", icon: LayoutDashboard, end: true, level: "staff" },
+  { to: "/admin/bookings", label: "Bookings", icon: CalendarCheck, level: "staff" },
+  { to: "/admin/event-reservations", label: "Event Attendance", icon: Ticket, level: "staff" },
+  { to: "/admin/venue-reservations", label: "Venue Bookings", icon: PartyPopper, level: "staff" },
+  { to: "/admin/messages", label: "Messages", icon: MessageSquare, level: "staff" },
+  { to: "/admin/rooms", label: "Rooms", icon: BedDouble, level: "manager" },
+  { to: "/admin/events", label: "Events", icon: Sparkles, level: "manager" },
+  { to: "/admin/payments", label: "Payments", icon: CreditCard, level: "manager" },
+  { to: "/admin/staff", label: "Staff & Roles", icon: Users, level: "admin" },
 ];
 
 const AdminSidebar = () => {
-  const { signOut, user } = useAuth();
+  const { signOut, user, role, isAdmin, isManager, isStaff } = useAuth();
   const navigate = useNavigate();
   const { isMobile, setOpenMobile } = useSidebar();
   const handleLogout = async () => {
@@ -28,6 +30,9 @@ const AdminSidebar = () => {
     navigate("/auth", { replace: true });
   };
   const closeMobile = () => { if (isMobile) setOpenMobile(false); };
+  const canSee = (level: Level) => level === "admin" ? isAdmin : level === "manager" ? isManager : isStaff;
+  const visibleItems = items.filter((it) => canSee(it.level));
+  const roleLabel = role === "admin" ? "ceo" : role;
   return (
     <Sidebar collapsible="icon" className="border-r border-[hsl(var(--gold))]/15">
       <SidebarHeader className="border-b border-border/50 py-4">
@@ -45,7 +50,7 @@ const AdminSidebar = () => {
         <SidebarGroup>
           <SidebarGroupContent>
             <SidebarMenu>
-              {items.map((it) => (
+              {visibleItems.map((it) => (
                 <SidebarMenuItem key={it.to}>
                   <SidebarMenuButton asChild tooltip={it.label}>
                     <NavLink to={it.to} end={it.end} onClick={closeMobile}
@@ -62,8 +67,9 @@ const AdminSidebar = () => {
         </SidebarGroup>
       </SidebarContent>
       <SidebarFooter className="border-t border-border/50">
-        <div className="px-2 py-1 text-xs text-muted-foreground truncate group-data-[collapsible=icon]:hidden">
-          {user?.email}
+        <div className="px-2 py-1 group-data-[collapsible=icon]:hidden">
+          <div className="text-xs text-muted-foreground truncate">{user?.email}</div>
+          {roleLabel && <div className="text-[11px] uppercase tracking-wider text-gold font-medium capitalize mt-0.5">{roleLabel}</div>}
         </div>
         <SidebarMenuButton onClick={handleLogout} tooltip="Sign out" className="text-destructive hover:!bg-destructive/10">
           <LogOut className="w-4 h-4" />
