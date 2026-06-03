@@ -8,6 +8,7 @@ import NotFound from "./pages/NotFound.tsx";
 import Auth from "./pages/Auth.tsx";
 import { AuthProvider } from "./hooks/useAuth.tsx";
 import ProtectedAdmin from "./components/admin/ProtectedAdmin.tsx";
+import RequireRole from "./components/admin/RequireRole.tsx";
 import AdminLayout from "./components/admin/AdminLayout.tsx";
 import Overview from "./pages/admin/Overview.tsx";
 import Rooms from "./pages/admin/Rooms.tsx";
@@ -17,6 +18,7 @@ import Messages from "./pages/admin/Messages.tsx";
 import Events from "./pages/admin/Events.tsx";
 import EventReservations from "./pages/admin/EventReservations.tsx";
 import VenueReservations from "./pages/admin/VenueReservations.tsx";
+import Staff from "./pages/admin/Staff.tsx";
 
 const queryClient = new QueryClient();
 
@@ -33,13 +35,18 @@ const App = () => (
             <Route element={<ProtectedAdmin />}>
               <Route path="/admin" element={<AdminLayout />}>
                 <Route index element={<Overview />} />
-                <Route path="rooms" element={<Rooms />} />
                 <Route path="bookings" element={<Bookings />} />
-                <Route path="payments" element={<Payments />} />
                 <Route path="messages" element={<Messages />} />
-                <Route path="events" element={<Events />} />
                 <Route path="event-reservations" element={<EventReservations />} />
                 <Route path="venue-reservations" element={<VenueReservations />} />
+                <Route element={<RequireRole allow="manager" />}>
+                  <Route path="rooms" element={<Rooms />} />
+                  <Route path="events" element={<Events />} />
+                  <Route path="payments" element={<Payments />} />
+                </Route>
+                <Route element={<RequireRole allow="admin" />}>
+                  <Route path="staff" element={<Staff />} />
+                </Route>
               </Route>
             </Route>
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
