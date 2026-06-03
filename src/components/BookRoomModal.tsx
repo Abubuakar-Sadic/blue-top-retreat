@@ -27,13 +27,20 @@ type Props = {
 const inputCls =
   "w-full px-4 py-2.5 rounded-lg border border-border bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-gold/50 focus:border-gold transition-all text-sm";
 
+const CHANNELS = [
+  { value: "mtn-gh", label: "MTN MoMo" },
+  { value: "vodafone-gh", label: "Telecel/Vodafone Cash" },
+  { value: "airteltigo-gh", label: "AirtelTigo Money" },
+];
+
 const BookRoomModal = ({ open, onOpenChange, room }: Props) => {
-  const [form, setForm] = useState({ name: "", phone: "", email: "", checkin: "", checkout: "", guests: 1, notes: "" });
+  const [form, setForm] = useState({ name: "", phone: "", email: "", checkin: "", checkout: "", guests: 1, notes: "", channel: "mtn-gh", momo: "" });
   const [busy, setBusy] = useState(false);
   const [code, setCode] = useState<string | null>(null);
+  const [momoState, setMomoState] = useState<"idle" | "prompt" | "pending">("idle");
 
   useEffect(() => {
-    if (!open) { setCode(null); setForm({ name: "", phone: "", email: "", checkin: "", checkout: "", guests: 1, notes: "" }); }
+    if (!open) { setCode(null); setMomoState("idle"); setForm({ name: "", phone: "", email: "", checkin: "", checkout: "", guests: 1, notes: "", channel: "mtn-gh", momo: "" }); }
   }, [open]);
 
   const submit = async (e: React.FormEvent) => {
@@ -44,6 +51,7 @@ const BookRoomModal = ({ open, onOpenChange, room }: Props) => {
     if (new Date(form.checkin) > new Date(form.checkout)) { toast.error("Check-out must be after check-in"); return; }
     setBusy(true);
     const nights = Math.max(1, Math.ceil((new Date(form.checkout).getTime() - new Date(form.checkin).getTime()) / 86400000));
+    const totalAmount = nights * Number(room.price_per_night || 0);
     const { data, error } = await supabase.from("bookings").insert({
       room_id: room.id,
       customer_name: form.name,
@@ -51,17 +59,34 @@ const BookRoomModal = ({ open, onOpenChange, room }: Props) => {
       customer_email: form.email || null,
       check_in: form.checkin,
       check_out: form.checkout,
-      total_amount: nights * Number(room.price_per_night || 0),
+      total_amount: totalAmount,
       notes: form.notes ? `Guests: ${form.guests}. ${form.notes}` : `Guests: ${form.guests}`,
-    }).select("booking_code").single();
-    setBusy(false);
-    if (error) { toast.error(error.message); return; }
+    }).select("id, booking_code").single();
+    if (error) { setBusy(false); toast.error(error.message); return; }
     const bookingCode = data?.booking_code ?? null;
     setCode(bookingCode);
     // Fire-and-forget SMS
     supabase.functions.invoke("send-booking-sms", {
       body: { phone: form.phone, code: bookingCode, type: "room", name: form.name, room: room.room_name },
     }).catch(() => {});
+
+    // Trigger mobile money prompt for payment
+    if (totalAmount > 0 && data?.id) {
+      setMomoState("prompt");
+      const { data: pay } = await supabase.functions.invoke("hubtel-initiate-payment", {
+        body: {
+          bookingId: data.id,
+          amount: totalAmount,
+          customerName: form.name,
+          customerMsisdn: form.momo || form.phone,
+          channel: form.channel,
+          customerEmail: form.email || undefined,
+          description: `Room booking — ${room.room_name}`,
+        },
+      }).catch(() => ({ data: null }));
+      setMomoState(pay?.skipped ? "idle" : "pending");
+    }
+    setBusy(false);
     toast.success("Booking submitted!");
   };
 
@@ -81,6 +106,12 @@ const BookRoomModal = ({ open, onOpenChange, room }: Props) => {
               <p className="text-xs uppercase tracking-wider text-muted-foreground mb-1">Booking Code</p>
               <p className="font-mono text-2xl font-bold text-gold">{code}</p>
             </div>
+            {momoState === "pending" && (
+              <p className="text-sm text-muted-foreground">
+                📱 A mobile money prompt has been sent to <span className="font-medium text-foreground">{form.momo || form.phone}</span>.
+                Approve it to confirm payment. Your booking shows as paid once approved.
+              </p>
+            )}
             <button onClick={() => onOpenChange(false)} className="btn-gold w-full">Done</button>
           </div>
         ) : (
