@@ -142,6 +142,16 @@ const BookRoomModal = ({ open, onOpenChange, room }: Props) => {
                 <label className="block text-xs text-muted-foreground mb-1">Guests</label>
                 <input className={inputCls} type="number" min={1} max={20} value={form.guests} onChange={(e) => setForm({ ...form, guests: Number(e.target.value) })} />
               </div>
+              <div className="rounded-lg border border-gold/30 bg-gold/5 p-3 space-y-3">
+                <p className="text-xs font-medium text-foreground">Pay with Mobile Money</p>
+                <div className="grid sm:grid-cols-2 gap-3">
+                  <select className={inputCls} value={form.channel} onChange={(e) => setForm({ ...form, channel: e.target.value })}>
+                    {CHANNELS.map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}
+                  </select>
+                  <input className={inputCls} placeholder="MoMo number" value={form.momo} onChange={(e) => setForm({ ...form, momo: e.target.value })} />
+                </div>
+                <p className="text-[11px] text-muted-foreground">You'll get a prompt on your phone to approve payment. Leave blank to pay later.</p>
+              </div>
               <textarea className={inputCls} rows={2} placeholder="Special requests (optional)" value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
               <button type="submit" disabled={busy} className="btn-gold w-full disabled:opacity-60">
                 {busy ? <span className="inline-flex items-center gap-2"><Loader2 className="w-4 h-4 animate-spin" /> Submitting...</span> : "Confirm Booking"}
