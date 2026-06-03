@@ -13,18 +13,19 @@ const schema = z.object({
 
 const Auth = () => {
   const navigate = useNavigate();
-  const { user, isAdmin, loading } = useAuth();
+  const { user, loading } = useAuth();
   const [mode, setMode] = useState<"signin" | "signup">("signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [fullName, setFullName] = useState("");
   const [busy, setBusy] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
   useEffect(() => {
     if (!loading && user) {
-      navigate(isAdmin ? "/admin" : "/", { replace: true });
+      navigate("/admin", { replace: true });
     }
-  }, [user, isAdmin, loading, navigate]);
+  }, [user, loading, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -39,10 +40,13 @@ const Auth = () => {
         const { error } = await supabase.auth.signUp({
           email: parsed.data.email,
           password: parsed.data.password,
-          options: { emailRedirectTo: `${window.location.origin}/admin` },
+          options: {
+            emailRedirectTo: `${window.location.origin}/admin`,
+            data: { full_name: fullName.trim() },
+          },
         });
         if (error) throw error;
-        toast.success("Account created. You can sign in now.");
+        toast.success("Account created. Sign in — access is granted once the CEO approves your role.");
         setMode("signin");
       } else {
         const { error } = await supabase.auth.signInWithPassword({
