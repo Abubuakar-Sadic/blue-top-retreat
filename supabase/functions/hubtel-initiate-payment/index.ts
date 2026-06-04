@@ -2,18 +2,23 @@ import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
 import { createClient } from "npm:@supabase/supabase-js@2";
 
 /* ===========================================================================
- *  HUBTEL CREDENTIALS — PLACEHOLDERS (add these in Lovable Cloud → Secrets)
+ *  ███  HUBTEL TEAM: PASTE YOUR 3 CREDENTIALS BELOW  ███
  * ---------------------------------------------------------------------------
- *  Once Hubtel gives you the values, add them under these EXACT names.
- *  No code change is needed afterwards — payments activate automatically.
+ *  This is the ONLY place you need to edit to turn payments on.
+ *  Replace the empty quotes "" with the values Hubtel issued, then save.
+ *  Example:  CLIENT_ID = "abc123xyz"
  *
- *    HUBTEL_CLIENT_ID         -> Hubtel API Client ID / API Key
- *    HUBTEL_CLIENT_SECRET     -> Hubtel API Client Secret
- *    HUBTEL_MERCHANT_ACCOUNT  -> Hubtel Merchant Account Number / Merchant ID
- *
- *  Details to give Hubtel:
- *    Website URL  : https://blue-top-retreat.lovable.app
- *    Callback URL : https://sgbpuqugkhgcmdsykemp.supabase.co/functions/v1/hubtel-callback
+ *  Site URL     : https://blue-top-retreat.lovable.app
+ *  Callback URL : https://sgbpuqugkhgcmdsykemp.supabase.co/functions/v1/hubtel-callback
+ * ========================================================================= */
+const HUBTEL = {
+  CLIENT_ID: "",        // <-- Hubtel API Client ID / API Key
+  CLIENT_SECRET: "",    // <-- Hubtel API Client Secret
+  MERCHANT_ACCOUNT: "", // <-- Hubtel Merchant Account Number / Merchant ID
+};
+/* =========================================================================
+ *  (Optional/advanced) If left blank above, the values are read from secure
+ *  environment secrets instead — no need to touch this.
  * ========================================================================= */
 
 // Normalize a Ghana mobile number to 233XXXXXXXXX (no plus, as Hubtel expects)
@@ -68,9 +73,9 @@ Deno.serve(async (req) => {
     });
     if (payErr) console.error("payment insert error", payErr.message);
 
-    const CLIENT_ID = Deno.env.get("HUBTEL_CLIENT_ID");
-    const CLIENT_SECRET = Deno.env.get("HUBTEL_CLIENT_SECRET");
-    const MERCHANT = Deno.env.get("HUBTEL_MERCHANT_ACCOUNT");
+    const CLIENT_ID = HUBTEL.CLIENT_ID || Deno.env.get("HUBTEL_CLIENT_ID");
+    const CLIENT_SECRET = HUBTEL.CLIENT_SECRET || Deno.env.get("HUBTEL_CLIENT_SECRET");
+    const MERCHANT = HUBTEL.MERCHANT_ACCOUNT || Deno.env.get("HUBTEL_MERCHANT_ACCOUNT");
 
     // Graceful fallback so booking flow still works before Hubtel keys are added
     if (!CLIENT_ID || !CLIENT_SECRET || !MERCHANT) {
