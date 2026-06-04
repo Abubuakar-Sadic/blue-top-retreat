@@ -1,6 +1,21 @@
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
 import { createClient } from "npm:@supabase/supabase-js@2";
 
+/* ===========================================================================
+ *  HUBTEL CREDENTIALS — PLACEHOLDERS (add these in Lovable Cloud → Secrets)
+ * ---------------------------------------------------------------------------
+ *  Once Hubtel gives you the values, add them under these EXACT names.
+ *  No code change is needed afterwards — payments activate automatically.
+ *
+ *    HUBTEL_CLIENT_ID         -> Hubtel API Client ID / API Key
+ *    HUBTEL_CLIENT_SECRET     -> Hubtel API Client Secret
+ *    HUBTEL_MERCHANT_ACCOUNT  -> Hubtel Merchant Account Number / Merchant ID
+ *
+ *  Details to give Hubtel:
+ *    Website URL  : https://blue-top-retreat.lovable.app
+ *    Callback URL : https://sgbpuqugkhgcmdsykemp.supabase.co/functions/v1/hubtel-callback
+ * ========================================================================= */
+
 // Normalize a Ghana mobile number to 233XXXXXXXXX (no plus, as Hubtel expects)
 const normalizeMsisdn = (raw: string): string => {
   let n = String(raw).replace(/[\s-]/g, "");
