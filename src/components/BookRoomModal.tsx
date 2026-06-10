@@ -67,7 +67,7 @@ const BookRoomModal = ({ open, onOpenChange, room }: Props) => {
     setCode(bookingCode);
     // Fire-and-forget SMS
     supabase.functions.invoke("send-booking-sms", {
-      body: { phone: form.phone, code: bookingCode, type: "room", name: form.name, room: room.room_name },
+      body: { type: "room", id: data?.id },
     }).catch(() => {});
 
     // Trigger mobile money prompt for payment
