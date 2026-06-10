@@ -57,13 +57,13 @@ const VenueReservationModal = ({ open, onOpenChange, presetType }: Props) => {
       event_date: form.eventDate,
       guest_count: form.guestCount,
       notes: form.notes || null,
-    }).select("reservation_code").single();
+    }).select("id, reservation_code").single();
     setBusy(false);
     if (error) { toast.error(error.message); return; }
     const resCode = data?.reservation_code ?? null;
     setCode(resCode);
     supabase.functions.invoke("send-booking-sms", {
-      body: { phone: form.phone, code: resCode, type: "venue", name: form.name, event: form.eventType },
+      body: { type: "venue", id: data?.id },
     }).catch(() => {});
     toast.success("Venue reservation request sent!");
   };
