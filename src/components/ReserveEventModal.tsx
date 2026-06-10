@@ -46,13 +46,13 @@ const ReserveEventModal = ({ open, onOpenChange, event }: Props) => {
       attendee_email: form.email || null,
       party_size: form.partySize,
       notes: form.notes || null,
-    }).select("reservation_code").single();
+    }).select("id, reservation_code").single();
     setBusy(false);
     if (error) { toast.error(error.message); return; }
     const resCode = data?.reservation_code ?? null;
     setCode(resCode);
     supabase.functions.invoke("send-booking-sms", {
-      body: { phone: form.phone, code: resCode, type: "event", name: form.name, event: event.title },
+      body: { type: "event", id: data?.id },
     }).catch(() => {});
     toast.success("Reservation confirmed!");
   };
