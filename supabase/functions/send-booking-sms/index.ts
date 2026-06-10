@@ -1,13 +1,57 @@
 import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors';
+import { createClient } from 'npm:@supabase/supabase-js@2';
+
+type SmsType = 'room' | 'event' | 'venue';
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
 
   try {
-    const { phone, code, type, name, room, event } = await req.json();
-    if (!phone || !code) {
-      return new Response(JSON.stringify({ error: 'phone and code required' }), {
+    const { type, id } = await req.json();
+    if (!id || typeof id !== 'string' || !/^[0-9a-fA-F-]{36}$/.test(id) ||
+        (type !== 'room' && type !== 'event' && type !== 'venue')) {
+      return new Response(JSON.stringify({ error: 'valid type and record id required' }), {
         status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    // Look up the real record server-side so SMS can ONLY be sent to a phone
+    // number that already exists on a genuine booking — never an arbitrary
+    // number supplied by the caller. This prevents anonymous SMS spam abuse.
+    const admin = createClient(
+      Deno.env.get('SUPABASE_URL')!,
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
+    );
+
+    let phone: string | null = null;
+    let code: string | null = null;
+    let name = 'there';
+    let room: string | undefined;
+    let event: string | undefined;
+
+    if (type === 'room') {
+      const { data } = await admin.from('bookings')
+        .select('customer_phone, booking_code, customer_name, room_id').eq('id', id).maybeSingle();
+      if (data) {
+        phone = data.customer_phone; code = data.booking_code; name = data.customer_name || name;
+        if (data.room_id) {
+          const { data: r } = await admin.from('rooms').select('room_name').eq('id', data.room_id).maybeSingle();
+          room = r?.room_name;
+        }
+      }
+    } else if (type === 'event') {
+      const { data } = await admin.from('event_reservations')
+        .select('attendee_phone, reservation_code, attendee_name, event_title').eq('id', id).maybeSingle();
+      if (data) { phone = data.attendee_phone; code = data.reservation_code; name = data.attendee_name || name; event = data.event_title ?? undefined; }
+    } else {
+      const { data } = await admin.from('venue_reservations')
+        .select('customer_phone, reservation_code, customer_name, event_type').eq('id', id).maybeSingle();
+      if (data) { phone = data.customer_phone; code = data.reservation_code; name = data.customer_name || name; event = data.event_type ?? undefined; }
+    }
+
+    if (!phone || !code) {
+      return new Response(JSON.stringify({ error: 'booking not found' }), {
+        status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
