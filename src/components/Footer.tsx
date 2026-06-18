@@ -1,4 +1,4 @@
-import { Phone, MapPin, Mail, Facebook, Instagram } from "lucide-react";
+import { Phone, MapPin, Mail, Instagram } from "lucide-react";
 
 // TikTok glyph (lucide doesn't ship one)
 const TikTokIcon = ({ className = "" }: { className?: string }) => (
