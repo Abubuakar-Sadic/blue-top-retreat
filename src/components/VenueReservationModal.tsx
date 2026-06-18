@@ -2,10 +2,11 @@ import { useEffect, useState } from "react";
 import { z } from "zod";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { sendBookingToWhatsApp } from "@/lib/whatsapp";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
 } from "@/components/ui/dialog";
-import { CheckCircle2, Loader2, PartyPopper } from "lucide-react";
+import { CheckCircle2, Loader2, PartyPopper, MessageCircle } from "lucide-react";
 
 const schema = z.object({
   name: z.string().trim().min(1, "Name is required").max(100),
@@ -65,6 +66,17 @@ const VenueReservationModal = ({ open, onOpenChange, presetType }: Props) => {
     supabase.functions.invoke("send-booking-sms", {
       body: { type: "venue", id: data?.id },
     }).catch(() => {});
+    sendBookingToWhatsApp([
+      "🏛️ *New Venue Reservation — Blue Top Villa*",
+      resCode ? `Reservation code: ${resCode}` : "",
+      `Event type: ${form.eventType}`,
+      `Event date: ${form.eventDate}`,
+      `Name: ${form.name}`,
+      `Phone: ${form.phone}`,
+      form.email ? `Email: ${form.email}` : "",
+      `Expected guests: ${form.guestCount}`,
+      form.notes ? `Notes: ${form.notes}` : "",
+    ]);
     toast.success("Venue reservation request sent!");
   };
 
@@ -84,6 +96,17 @@ const VenueReservationModal = ({ open, onOpenChange, presetType }: Props) => {
               <p className="text-xs uppercase tracking-wider text-muted-foreground mb-1">Reservation Code</p>
               <p className="font-mono text-2xl font-bold text-gold">{code}</p>
             </div>
+            <p className="text-sm text-muted-foreground">
+              Your reservation details have been sent to Blue Top Villa on WhatsApp. If it didn't open, tap below.
+            </p>
+            <a
+              href={`https://wa.me/233595543157?text=${encodeURIComponent(`Venue reservation ${code ?? ""} — ${form.eventType} on ${form.eventDate} for ${form.name} (${form.phone})`)}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="w-full inline-flex items-center justify-center gap-2 rounded-lg bg-[#25D366] text-white py-2.5 font-medium hover:opacity-90 transition-opacity"
+            >
+              <MessageCircle className="w-4 h-4" /> Send via WhatsApp
+            </a>
             <button onClick={() => onOpenChange(false)} className="btn-gold w-full">Done</button>
           </div>
         ) : (

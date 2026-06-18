@@ -2,10 +2,11 @@ import { useEffect, useState } from "react";
 import { z } from "zod";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { sendBookingToWhatsApp } from "@/lib/whatsapp";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
 } from "@/components/ui/dialog";
-import { CheckCircle2, Loader2 } from "lucide-react";
+import { CheckCircle2, Loader2, MessageCircle } from "lucide-react";
 
 const schema = z.object({
   name: z.string().trim().min(1, "Name is required").max(100),
@@ -27,20 +28,13 @@ type Props = {
 const inputCls =
   "w-full px-4 py-2.5 rounded-lg border border-border bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-gold/50 focus:border-gold transition-all text-sm";
 
-const CHANNELS = [
-  { value: "mtn-gh", label: "MTN MoMo" },
-  { value: "vodafone-gh", label: "Telecel/Vodafone Cash" },
-  { value: "airteltigo-gh", label: "AirtelTigo Money" },
-];
-
 const BookRoomModal = ({ open, onOpenChange, room }: Props) => {
-  const [form, setForm] = useState({ name: "", phone: "", email: "", checkin: "", checkout: "", guests: 1, notes: "", channel: "mtn-gh", momo: "" });
+  const [form, setForm] = useState({ name: "", phone: "", email: "", checkin: "", checkout: "", guests: 1, notes: "" });
   const [busy, setBusy] = useState(false);
   const [code, setCode] = useState<string | null>(null);
-  const [momoState, setMomoState] = useState<"idle" | "prompt" | "pending">("idle");
 
   useEffect(() => {
-    if (!open) { setCode(null); setMomoState("idle"); setForm({ name: "", phone: "", email: "", checkin: "", checkout: "", guests: 1, notes: "", channel: "mtn-gh", momo: "" }); }
+    if (!open) { setCode(null); setForm({ name: "", phone: "", email: "", checkin: "", checkout: "", guests: 1, notes: "" }); }
   }, [open]);
 
   const submit = async (e: React.FormEvent) => {
@@ -70,22 +64,21 @@ const BookRoomModal = ({ open, onOpenChange, room }: Props) => {
       body: { type: "room", id: data?.id },
     }).catch(() => {});
 
-    // Trigger mobile money prompt for payment
-    if (totalAmount > 0 && data?.id) {
-      setMomoState("prompt");
-      const { data: pay } = await supabase.functions.invoke("hubtel-initiate-payment", {
-        body: {
-          bookingId: data.id,
-          amount: totalAmount,
-          customerName: form.name,
-          customerMsisdn: form.momo || form.phone,
-          channel: form.channel,
-          customerEmail: form.email || undefined,
-          description: `Room booking — ${room.room_name}`,
-        },
-      }).catch(() => ({ data: null }));
-      setMomoState(pay?.skipped ? "idle" : "pending");
-    }
+    // Send the full booking details directly to Blue Top Villa's WhatsApp
+    sendBookingToWhatsApp([
+      "🏨 *New Room Booking — Blue Top Villa*",
+      bookingCode ? `Booking code: ${bookingCode}` : "",
+      `Room: ${room.room_name}`,
+      `Amount: GHS ${totalAmount.toLocaleString()} (${nights} night${nights > 1 ? "s" : ""})`,
+      `Name: ${form.name}`,
+      `Phone: ${form.phone}`,
+      form.email ? `Email: ${form.email}` : "",
+      `Check-in: ${form.checkin}`,
+      `Check-out: ${form.checkout}`,
+      `Guests: ${form.guests}`,
+      form.notes ? `Notes: ${form.notes}` : "",
+    ]);
+
     setBusy(false);
     toast.success("Booking submitted!");
   };
@@ -106,12 +99,17 @@ const BookRoomModal = ({ open, onOpenChange, room }: Props) => {
               <p className="text-xs uppercase tracking-wider text-muted-foreground mb-1">Booking Code</p>
               <p className="font-mono text-2xl font-bold text-gold">{code}</p>
             </div>
-            {momoState === "pending" && (
-              <p className="text-sm text-muted-foreground">
-                📱 A mobile money prompt has been sent to <span className="font-medium text-foreground">{form.momo || form.phone}</span>.
-                Approve it to confirm payment. Your booking shows as paid once approved.
-              </p>
-            )}
+            <p className="text-sm text-muted-foreground">
+              Your booking details have been sent to Blue Top Villa on WhatsApp. If it didn't open, tap below.
+            </p>
+            <a
+              href={`https://wa.me/233595543157?text=${encodeURIComponent(`Room booking ${code ?? ""} — ${room?.room_name ?? ""} for ${form.name} (${form.phone})`)}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="w-full inline-flex items-center justify-center gap-2 rounded-lg bg-[#25D366] text-white py-2.5 font-medium hover:opacity-90 transition-opacity"
+            >
+              <MessageCircle className="w-4 h-4" /> Send via WhatsApp
+            </a>
             <button onClick={() => onOpenChange(false)} className="btn-gold w-full">Done</button>
           </div>
         ) : (
@@ -141,16 +139,6 @@ const BookRoomModal = ({ open, onOpenChange, room }: Props) => {
               <div>
                 <label className="block text-xs text-muted-foreground mb-1">Guests</label>
                 <input className={inputCls} type="number" min={1} max={20} value={form.guests} onChange={(e) => setForm({ ...form, guests: Number(e.target.value) })} />
-              </div>
-              <div className="rounded-lg border border-gold/30 bg-gold/5 p-3 space-y-3">
-                <p className="text-xs font-medium text-foreground">Pay with Mobile Money</p>
-                <div className="grid sm:grid-cols-2 gap-3">
-                  <select className={inputCls} value={form.channel} onChange={(e) => setForm({ ...form, channel: e.target.value })}>
-                    {CHANNELS.map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}
-                  </select>
-                  <input className={inputCls} placeholder="MoMo number" value={form.momo} onChange={(e) => setForm({ ...form, momo: e.target.value })} />
-                </div>
-                <p className="text-[11px] text-muted-foreground">You'll get a prompt on your phone to approve payment. Leave blank to pay later.</p>
               </div>
               <textarea className={inputCls} rows={2} placeholder="Special requests (optional)" value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
               <button type="submit" disabled={busy} className="btn-gold w-full disabled:opacity-60">
