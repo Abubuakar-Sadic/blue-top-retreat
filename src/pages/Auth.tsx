@@ -13,19 +13,13 @@ const schema = z.object({
 
 const Auth = () => {
   const navigate = useNavigate();
-  const { user, loading } = useAuth();
+  const { loading } = useAuth();
   const [mode, setMode] = useState<"signin" | "signup">("signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
   const [busy, setBusy] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-
-  useEffect(() => {
-    if (!loading && user) {
-      navigate("/admin", { replace: true });
-    }
-  }, [user, loading, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -55,6 +49,7 @@ const Auth = () => {
         });
         if (error) throw error;
         toast.success("Welcome back");
+        navigate("/admin", { replace: true });
       }
     } catch (err: any) {
       toast.error(err.message ?? "Authentication failed");
