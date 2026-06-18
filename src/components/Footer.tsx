@@ -8,9 +8,8 @@ const TikTokIcon = ({ className = "" }: { className?: string }) => (
 );
 
 const socials = [
-  { name: "Facebook", href: "https://facebook.com", Icon: Facebook },
-  { name: "Instagram", href: "https://instagram.com", Icon: Instagram },
-  { name: "TikTok", href: "https://tiktok.com", Icon: TikTokIcon },
+  { name: "Instagram", href: "https://www.instagram.com/bluetopvillahotel?igsh=Y3ZnZXdkaTltZ2xj", Icon: Instagram },
+  { name: "TikTok", href: "https://www.tiktok.com/@bluetopvillahotel?_r=1&_t=ZS-97JTdDcORgy", Icon: TikTokIcon },
 ];
 
 const Footer = () => (
