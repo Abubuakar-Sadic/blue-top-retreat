@@ -3,7 +3,6 @@ import { useNavigate, Link } from "react-router-dom";
 import { toast } from "sonner";
 import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/hooks/useAuth";
 import { Loader2, Eye, EyeOff } from "lucide-react";
 
 const schema = z.object({
@@ -13,7 +12,6 @@ const schema = z.object({
 
 const Auth = () => {
   const navigate = useNavigate();
-  const { loading } = useAuth();
   const [mode, setMode] = useState<"signin" | "signup">("signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
