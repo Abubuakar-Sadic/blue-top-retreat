@@ -76,7 +76,7 @@ const BookingSection = () => {
             </div>
             <div>
               <label htmlFor="booking-phone" className="block text-sm font-medium text-foreground mb-1.5">Phone Number</label>
-              <input id="booking-phone" name="phone" value={form.phone} onChange={handleChange} required placeholder="059 554 3157" className={inputClass} />
+              <input id="booking-phone" name="phone" value={form.phone} onChange={handleChange} required placeholder="055 917 1787" className={inputClass} />
             </div>
             <div className="sm:col-span-2">
               <label htmlFor="booking-email" className="block text-sm font-medium text-foreground mb-1.5">Email (Optional)</label>

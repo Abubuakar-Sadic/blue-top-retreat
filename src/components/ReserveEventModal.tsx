@@ -88,7 +88,7 @@ const ReserveEventModal = ({ open, onOpenChange, event }: Props) => {
               Your booking details have been sent to Blue Top Villa on WhatsApp. If it didn't open, tap below.
             </p>
             <a
-              href={`https://wa.me/233595543157?text=${encodeURIComponent(`Event booking ${code ?? ""} — ${event?.title ?? ""} for ${form.name} (${form.phone})`)}`}
+              href={`https://wa.me/233559171787?text=${encodeURIComponent(`Event booking ${code ?? ""} — ${event?.title ?? ""} for ${form.name} (${form.phone})`)}`}
               target="_blank"
               rel="noopener noreferrer"
               className="w-full inline-flex items-center justify-center gap-2 rounded-lg bg-[#25D366] text-white py-2.5 font-medium hover:opacity-90 transition-opacity"
@@ -106,7 +106,7 @@ const ReserveEventModal = ({ open, onOpenChange, event }: Props) => {
             <form onSubmit={submit} className="space-y-3 mt-2">
               <div className="grid sm:grid-cols-2 gap-3">
                 <input className={inputCls} placeholder="Full name" required value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
-                <input className={inputCls} placeholder="Phone (e.g. 059 554 3157)" required value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
+                <input className={inputCls} placeholder="Phone (e.g. 055 917 1787)" required value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
               </div>
               <input className={inputCls} type="email" placeholder="Email (optional)" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
               <div>

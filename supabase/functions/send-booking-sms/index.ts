@@ -76,7 +76,7 @@ Deno.serve(async (req) => {
       : type === 'event'
         ? `event "${event ?? ''}"`
         : `room "${room ?? ''}"`;
-    const body = `Hi ${name ?? 'there'}, your Blue Top Villa ${subject} booking is received. Code: ${code}. Keep this for check-in. Call 059 554 3157 for help.`;
+    const body = `Hi ${name ?? 'there'}, your Blue Top Villa ${subject} booking is received. Code: ${code}. Keep this for check-in. Call 055 917 1787 or 059 415 7608 for help.`;
 
     const res = await fetch('https://connector-gateway.lovable.dev/twilio/Messages.json', {
       method: 'POST',
