@@ -1,8 +1,15 @@
 import { createContext, useContext, useEffect, useState, ReactNode, useCallback } from "react";
 import { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
+import {
+  Capability,
+  StaffRole,
+  RANK,
+  capsForRoles,
+  isStaffRole,
+} from "@/lib/permissions";
 
-export type StaffRole = "ceo" | "admin" | "manager" | "receptionist";
+export type { StaffRole, Capability } from "@/lib/permissions";
 
 type AuthContextValue = {
   user: User | null;
@@ -10,15 +17,15 @@ type AuthContextValue = {
   roles: string[];
   /** highest-ranking staff role, or null if none */
   role: StaffRole | null;
-  isAdmin: boolean; // CEO / admin — full access incl. staff management
-  isManager: boolean; // manager and above
-  isStaff: boolean; // any staff role
+  /** capability check — the preferred way to gate UI & routes */
+  can: (cap: Capability) => boolean;
+  isAdmin: boolean; // CEO — full access incl. staff & finances
+  isManager: boolean; // can manage events/operations
+  isStaff: boolean; // any staff role (controls dashboard access)
   loading: boolean;
   refreshRoles: () => Promise<void>;
   signOut: () => Promise<void>;
 };
-
-const RANK: Record<string, number> = { ceo: 4, admin: 4, manager: 2, receptionist: 1 };
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
@@ -65,15 +72,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setRoles([]);
   };
 
-  const isAdmin = roles.includes("admin") || roles.includes("ceo");
-  const isManager = isAdmin || roles.includes("manager");
-  const isStaff = isManager || roles.includes("receptionist");
+  const caps = capsForRoles(roles);
+  const can = (cap: Capability) => caps.has(cap);
+  const isAdmin = can("manage_staff");
+  const isManager = can("manage_events");
+  const isStaff = roles.some(isStaffRole);
   const role = (roles
     .filter((r) => r in RANK)
     .sort((a, b) => RANK[b] - RANK[a])[0] as StaffRole) ?? null;
 
   return (
-    <AuthContext.Provider value={{ user, session, roles, role, isAdmin, isManager, isStaff, loading, refreshRoles, signOut }}>
+    <AuthContext.Provider value={{ user, session, roles, role, can, isAdmin, isManager, isStaff, loading, refreshRoles, signOut }}>
       {children}
     </AuthContext.Provider>
   );
