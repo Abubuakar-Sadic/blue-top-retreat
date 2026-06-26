@@ -123,7 +123,7 @@ const BookRoomModal = ({ open, onOpenChange, room }: Props) => {
             <form onSubmit={submit} className="space-y-3 mt-2">
               <div className="grid sm:grid-cols-2 gap-3">
                 <input className={inputCls} placeholder="Full name" required value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
-                <input className={inputCls} placeholder="Phone (e.g. 059 554 3157)" required value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
+                <input className={inputCls} placeholder="Phone (e.g. 055 917 1787)" required value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
               </div>
               <input className={inputCls} type="email" placeholder="Email (optional)" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
               <div className="grid sm:grid-cols-2 gap-3">
