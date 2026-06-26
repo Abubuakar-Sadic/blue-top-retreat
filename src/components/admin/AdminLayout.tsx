@@ -1,27 +1,28 @@
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import { LayoutDashboard, BedDouble, CalendarCheck, CreditCard, MessageSquare, LogOut, Crown, Sparkles, Ticket, PartyPopper, Users } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
+import { ROLE_LABELS, type Capability, type StaffRole } from "@/lib/permissions";
 import {
   Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarMenu,
   SidebarMenuButton, SidebarMenuItem, SidebarProvider, SidebarTrigger, SidebarHeader, SidebarFooter, useSidebar,
 } from "@/components/ui/sidebar";
 import { toast } from "sonner";
 
-type Level = "staff" | "manager" | "admin";
-const items: { to: string; label: string; icon: typeof LayoutDashboard; end?: boolean; level: Level }[] = [
-  { to: "/admin", label: "Overview", icon: LayoutDashboard, end: true, level: "staff" },
-  { to: "/admin/bookings", label: "Bookings", icon: CalendarCheck, level: "staff" },
-  { to: "/admin/event-reservations", label: "Event Attendance", icon: Ticket, level: "staff" },
-  { to: "/admin/venue-reservations", label: "Venue Bookings", icon: PartyPopper, level: "staff" },
-  { to: "/admin/messages", label: "Messages", icon: MessageSquare, level: "staff" },
-  { to: "/admin/rooms", label: "Rooms", icon: BedDouble, level: "manager" },
-  { to: "/admin/events", label: "Events", icon: Sparkles, level: "manager" },
-  { to: "/admin/payments", label: "Payments", icon: CreditCard, level: "manager" },
-  { to: "/admin/staff", label: "Staff & Roles", icon: Users, level: "admin" },
+// `cap: null` means visible to every staff member.
+const items: { to: string; label: string; icon: typeof LayoutDashboard; end?: boolean; cap: Capability | null }[] = [
+  { to: "/admin", label: "Overview", icon: LayoutDashboard, end: true, cap: null },
+  { to: "/admin/bookings", label: "Bookings", icon: CalendarCheck, cap: "manage_bookings" },
+  { to: "/admin/event-reservations", label: "Event Attendance", icon: Ticket, cap: "manage_bookings" },
+  { to: "/admin/venue-reservations", label: "Venue Bookings", icon: PartyPopper, cap: "manage_bookings" },
+  { to: "/admin/messages", label: "Messages", icon: MessageSquare, cap: "manage_bookings" },
+  { to: "/admin/rooms", label: "Rooms", icon: BedDouble, cap: "manage_rooms" },
+  { to: "/admin/events", label: "Events", icon: Sparkles, cap: "manage_events" },
+  { to: "/admin/payments", label: "Payments", icon: CreditCard, cap: "manage_payments" },
+  { to: "/admin/staff", label: "Staff & Roles", icon: Users, cap: "manage_staff" },
 ];
 
 const AdminSidebar = () => {
-  const { signOut, user, role, isAdmin, isManager, isStaff } = useAuth();
+  const { signOut, user, role, can } = useAuth();
   const navigate = useNavigate();
   const { isMobile, setOpenMobile } = useSidebar();
   const handleLogout = async () => {
@@ -30,9 +31,8 @@ const AdminSidebar = () => {
     navigate("/auth", { replace: true });
   };
   const closeMobile = () => { if (isMobile) setOpenMobile(false); };
-  const canSee = (level: Level) => level === "admin" ? isAdmin : level === "manager" ? isManager : isStaff;
-  const visibleItems = items.filter((it) => canSee(it.level));
-  const roleLabel = role === "admin" ? "ceo" : role;
+  const visibleItems = items.filter((it) => (it.cap ? can(it.cap) : true));
+  const roleLabel = role ? ROLE_LABELS[role as StaffRole] : null;
   return (
     <Sidebar collapsible="icon" className="border-r border-[hsl(var(--gold))]/15">
       <SidebarHeader className="border-b border-border/50 py-4">
