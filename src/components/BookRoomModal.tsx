@@ -103,7 +103,7 @@ const BookRoomModal = ({ open, onOpenChange, room }: Props) => {
               Your booking details have been sent to Blue Top Villa on WhatsApp. If it didn't open, tap below.
             </p>
             <a
-              href={`https://wa.me/233595543157?text=${encodeURIComponent(`Room booking ${code ?? ""} — ${room?.room_name ?? ""} for ${form.name} (${form.phone})`)}`}
+              href={`https://wa.me/233559171787?text=${encodeURIComponent(`Room booking ${code ?? ""} — ${room?.room_name ?? ""} for ${form.name} (${form.phone})`)}`}
               target="_blank"
               rel="noopener noreferrer"
               className="w-full inline-flex items-center justify-center gap-2 rounded-lg bg-[#25D366] text-white py-2.5 font-medium hover:opacity-90 transition-opacity"
