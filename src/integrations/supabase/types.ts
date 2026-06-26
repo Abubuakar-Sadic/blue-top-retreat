@@ -382,6 +382,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      can_edit_content: { Args: { _uid: string }; Returns: boolean }
+      can_edit_rooms: { Args: { _uid: string }; Returns: boolean }
+      can_view_operations: { Args: { _uid: string }; Returns: boolean }
+      can_view_reports: { Args: { _uid: string }; Returns: boolean }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -389,11 +393,19 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_ceo: { Args: { _uid: string }; Returns: boolean }
       is_manager_or_above: { Args: { _uid: string }; Returns: boolean }
       is_staff: { Args: { _uid: string }; Returns: boolean }
     }
     Enums: {
-      app_role: "admin" | "user" | "manager" | "receptionist" | "ceo"
+      app_role:
+        | "admin"
+        | "user"
+        | "manager"
+        | "receptionist"
+        | "ceo"
+        | "content_editor"
+        | "reports_viewer"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -521,7 +533,15 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["admin", "user", "manager", "receptionist", "ceo"],
+      app_role: [
+        "admin",
+        "user",
+        "manager",
+        "receptionist",
+        "ceo",
+        "content_editor",
+        "reports_viewer",
+      ],
     },
   },
 } as const
