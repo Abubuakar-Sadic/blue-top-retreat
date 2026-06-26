@@ -79,7 +79,7 @@ const Staff = () => {
       return toast.error("There must be at least one CEO at all times.");
     }
     setBusy(uid);
-    const { error: delErr } = await supabase.from("user_roles").delete().eq("user_id", uid).in("role", ALL_STAFF_ROLES as string[]);
+    const { error: delErr } = await supabase.from("user_roles").delete().eq("user_id", uid).in("role", ALL_STAFF_ROLES as unknown as never[]);
     if (delErr) { setBusy(null); return toast.error(delErr.message); }
     const { error } = await supabase.from("user_roles").insert({ user_id: uid, role: role as never });
     setBusy(null);
@@ -94,7 +94,7 @@ const Staff = () => {
       return toast.error("There must be at least one CEO at all times.");
     }
     setBusy(uid);
-    const { error } = await supabase.from("user_roles").delete().eq("user_id", uid).in("role", ALL_STAFF_ROLES as string[]);
+    const { error } = await supabase.from("user_roles").delete().eq("user_id", uid).in("role", ALL_STAFF_ROLES as unknown as never[]);
     setBusy(null);
     if (error) return toast.error(error.message);
     toast.success("Access revoked");
