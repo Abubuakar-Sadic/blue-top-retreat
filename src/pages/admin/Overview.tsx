@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { BedDouble, CalendarCheck, CircleDollarSign, DoorOpen, Loader2 } from "lucide-react";
 import { format } from "date-fns";
+import { useAuth } from "@/hooks/useAuth";
 
 type Stats = { totalBookings: number; available: number; occupied: number; revenue: number };
 
@@ -18,16 +19,20 @@ const Card = ({ icon: Icon, label, value, accent }: any) => (
 );
 
 const Overview = () => {
+  const { can } = useAuth();
+  const showReports = can("view_reports");
+  const showRevenue = can("view_revenue");
   const [stats, setStats] = useState<Stats | null>(null);
   const [recent, setRecent] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     (async () => {
+      if (!showReports) { setLoading(false); return; }
       const [bookings, rooms, payments, recentB] = await Promise.all([
         supabase.from("bookings").select("id, status, total_amount"),
         supabase.from("rooms").select("id, is_available"),
-        supabase.from("payments").select("amount, status"),
+        showRevenue ? supabase.from("payments").select("amount, status") : Promise.resolve({ data: [] as any[] }),
         supabase.from("bookings").select("*, rooms(room_name)").order("created_at", { ascending: false }).limit(5),
       ]);
       const totalBookings = bookings.data?.length ?? 0;
@@ -38,9 +43,18 @@ const Overview = () => {
       setRecent(recentB.data ?? []);
       setLoading(false);
     })();
-  }, []);
+  }, [showReports, showRevenue]);
 
   if (loading) return <div className="flex justify-center py-20"><Loader2 className="w-6 h-6 animate-spin text-gold" /></div>;
+
+  if (!showReports) {
+    return (
+      <div className="space-y-2">
+        <h1 className="font-display text-3xl font-bold">Welcome back</h1>
+        <p className="text-muted-foreground text-sm">Use the sidebar to access the areas you manage at Blue Top Villa.</p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -49,11 +63,13 @@ const Overview = () => {
         <p className="text-muted-foreground text-sm mt-1">Welcome back. Here's what's happening at Blue Top Villa.</p>
       </div>
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className={`grid grid-cols-2 gap-4 ${showRevenue ? "lg:grid-cols-4" : "lg:grid-cols-3"}`}>
         <Card icon={CalendarCheck} label="Total Bookings" value={stats?.totalBookings} accent="bg-[hsl(var(--gold))]/15 text-[hsl(var(--gold-dark))]" />
         <Card icon={DoorOpen} label="Available Rooms" value={stats?.available} accent="bg-emerald-500/15 text-emerald-600" />
         <Card icon={BedDouble} label="Occupied Rooms" value={stats?.occupied} accent="bg-rose-500/15 text-rose-600" />
-        <Card icon={CircleDollarSign} label="Total Revenue" value={`GHS ${(stats?.revenue ?? 0).toLocaleString()}`} accent="bg-[hsl(var(--navy))]/15 text-[hsl(var(--navy))]" />
+        {showRevenue && (
+          <Card icon={CircleDollarSign} label="Total Revenue" value={`GHS ${(stats?.revenue ?? 0).toLocaleString()}`} accent="bg-[hsl(var(--navy))]/15 text-[hsl(var(--navy))]" />
+        )}
       </div>
 
       <div className="bg-card rounded-xl border border-border/60 shadow-sm">
@@ -79,7 +95,7 @@ const Overview = () => {
                   <td className="px-5 py-3 text-muted-foreground">{b.rooms?.room_name ?? "—"}</td>
                   <td className="px-5 py-3 text-muted-foreground">{format(new Date(b.check_in), "MMM d, yyyy")}</td>
                   <td className="px-5 py-3"><StatusBadge status={b.status} /></td>
-                  <td className="px-5 py-3 text-right font-medium">GHS {Number(b.total_amount ?? 0).toLocaleString()}</td>
+                  <td className="px-5 py-3 text-right font-medium">{showRevenue ? `GHS ${Number(b.total_amount ?? 0).toLocaleString()}` : "—"}</td>
                 </tr>
               ))}
             </tbody>
