@@ -12,7 +12,8 @@ const schema = z.object({
 });
 
 const details = [
-  { icon: Phone, label: "Phone", value: "059 554 3157", href: "tel:+233595543157" },
+  { icon: Phone, label: "Phone", value: "055 917 1787", href: "tel:+233559171787" },
+  { icon: Phone, label: "Phone (Alt)", value: "059 415 7608", href: "tel:+233594157608" },
   { icon: MapPin, label: "Location", value: "GHCC+G2, Kasoa, Ghana", href: undefined },
   { icon: Clock, label: "Check-in / Check-out", value: "12:00 PM / 12:00 PM", href: undefined },
 ];
@@ -46,7 +47,7 @@ const ContactSection = () => {
         <div className="gold-divider" />
       </div>
 
-      <div className="grid sm:grid-cols-3 gap-8 max-w-3xl mx-auto mb-12">
+      <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-8 max-w-4xl mx-auto mb-12">
         {details.map((d, i) => (
           <motion.div
             key={d.label}
