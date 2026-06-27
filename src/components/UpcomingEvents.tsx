@@ -82,8 +82,20 @@ const UpcomingEvents = () => {
               <div className="p-6">
                 <h3 className="font-display text-xl font-bold text-foreground mb-3">{ev.title}</h3>
                 <div className="space-y-2 text-sm text-muted-foreground">
-                  <div className="flex items-center gap-2"><Calendar className="w-4 h-4 text-gold" />{format(new Date(ev.event_at), "MMM d, yyyy")}</div>
-                  <div className="flex items-center gap-2"><Clock className="w-4 h-4 text-gold" />{format(new Date(ev.event_at), "h:mm a")}</div>
+                  {ev.event_type === "recurring" ? (
+                    <>
+                      <div className="flex items-center gap-2"><Calendar className="w-4 h-4 text-gold" />Recurring</div>
+                      <div className="flex items-center gap-2"><Clock className="w-4 h-4 text-gold" />{recurrenceLabel(ev)}</div>
+                      {nextOccurrence(ev) && (
+                        <div className="flex items-center gap-2 text-gold/90"><Calendar className="w-4 h-4 text-gold" />Next: {format(nextOccurrence(ev)!, "MMM d, yyyy · h:mm a")}</div>
+                      )}
+                    </>
+                  ) : (
+                    <>
+                      <div className="flex items-center gap-2"><Calendar className="w-4 h-4 text-gold" />{ev.event_at ? format(new Date(ev.event_at), "MMM d, yyyy") : ""}</div>
+                      <div className="flex items-center gap-2"><Clock className="w-4 h-4 text-gold" />{ev.event_at ? format(new Date(ev.event_at), "h:mm a") : ""}</div>
+                    </>
+                  )}
                   {ev.location && <div className="flex items-center gap-2"><MapPin className="w-4 h-4 text-gold" />{ev.location}</div>}
                 </div>
                 {ev.description && <p className="text-sm text-muted-foreground mt-4 line-clamp-3">{ev.description}</p>}
