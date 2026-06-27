@@ -5,14 +5,18 @@ import { format } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 import partyImg from "@/assets/event-party.jpg";
 import ReserveEventModal from "./ReserveEventModal";
+import { isEventVisible, eventSortKey, recurrenceLabel, nextOccurrence } from "@/lib/events";
 
 type EventRow = {
   id: string;
   title: string;
   description: string | null;
-  event_at: string;
+  event_at: string | null;
   location: string | null;
   image_url: string | null;
+  event_type: string;
+  recurrence_days: number[];
+  recurrence_time: string | null;
 };
 
 const UpcomingEvents = () => {
@@ -25,10 +29,12 @@ const UpcomingEvents = () => {
       .from("events")
       .select("*")
       .eq("is_public", true)
-      .gte("event_at", new Date().toISOString())
-      .order("event_at", { ascending: true })
-      .limit(6);
-    setEvents((data ?? []) as EventRow[]);
+      .order("event_at", { ascending: true });
+    const visible = ((data ?? []) as EventRow[])
+      .filter((ev) => isEventVisible(ev))
+      .sort((a, b) => eventSortKey(a) - eventSortKey(b))
+      .slice(0, 6);
+    setEvents(visible);
     setLoading(false);
   };
 
