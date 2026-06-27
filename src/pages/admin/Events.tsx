@@ -176,10 +176,60 @@ const Events = () => {
           {editing && (
             <div className="space-y-4">
               <Field label="Title"><input className="input" value={editing.title ?? ""} onChange={(e) => setEditing({ ...editing, title: e.target.value })} /></Field>
-              <div className="grid sm:grid-cols-2 gap-4">
+              <Field label="Event type">
+                <div className="grid grid-cols-2 gap-2">
+                  {[
+                    { v: "one_time", l: "One-time" },
+                    { v: "recurring", l: "Recurring" },
+                  ].map((opt) => (
+                    <button
+                      key={opt.v}
+                      type="button"
+                      onClick={() => setEditing({ ...editing, event_type: opt.v })}
+                      className={`px-3 py-2 rounded-lg border text-sm font-medium transition-colors ${
+                        (editing.event_type ?? "one_time") === opt.v
+                          ? "border-gold bg-gold/10 text-gold"
+                          : "border-border hover:bg-muted"
+                      }`}
+                    >
+                      {opt.l}
+                    </button>
+                  ))}
+                </div>
+              </Field>
+              {editing.event_type === "recurring" ? (
+                <div className="grid sm:grid-cols-2 gap-4">
+                  <Field label="Repeats on">
+                    <div className="flex flex-wrap gap-1.5">
+                      {WEEKDAYS.map((d) => {
+                        const active = (editing.recurrence_days ?? []).includes(d.value);
+                        return (
+                          <button
+                            key={d.value}
+                            type="button"
+                            onClick={() => {
+                              const cur = editing.recurrence_days ?? [];
+                              setEditing({
+                                ...editing,
+                                recurrence_days: active ? cur.filter((x) => x !== d.value) : [...cur, d.value],
+                              });
+                            }}
+                            className={`w-10 h-9 rounded-md border text-xs font-medium transition-colors ${
+                              active ? "border-gold bg-gold/10 text-gold" : "border-border hover:bg-muted"
+                            }`}
+                          >
+                            {d.short}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </Field>
+                  <Field label="Time"><input type="time" className="input" value={editing.recurrence_time ?? ""} onChange={(e) => setEditing({ ...editing, recurrence_time: e.target.value })} /></Field>
+                </div>
+              ) : (
                 <Field label="Date & Time"><input type="datetime-local" className="input" value={editing.event_at ?? ""} onChange={(e) => setEditing({ ...editing, event_at: e.target.value })} /></Field>
-                <Field label="Location"><input className="input" value={editing.location ?? ""} onChange={(e) => setEditing({ ...editing, location: e.target.value })} placeholder="Poolside Terrace" /></Field>
-              </div>
+              )}
+              <Field label="Location"><input className="input" value={editing.location ?? ""} onChange={(e) => setEditing({ ...editing, location: e.target.value })} placeholder="Poolside Terrace" /></Field>
               <Field label="Description">
                 <textarea rows={4} className="input" value={editing.description ?? ""} onChange={(e) => setEditing({ ...editing, description: e.target.value })} />
               </Field>
