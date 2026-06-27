@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Loader2, ShieldCheck, UserCog, Crown, Clock, Trash2 } from "lucide-react";
+import { Loader2, ShieldCheck, UserCog, Crown, Clock, Trash2, Search } from "lucide-react";
 import { format } from "date-fns";
 import { useAuth } from "@/hooks/useAuth";
 import {
@@ -42,6 +42,9 @@ const Staff = () => {
   const [roles, setRoles] = useState<RoleRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<string | null>(null);
+  const [query, setQuery] = useState("");
+  const [page, setPage] = useState(0);
+  const PAGE_SIZE = 10;
 
   const load = useCallback(async () => {
     const [{ data: p }, { data: r }] = await Promise.all([
@@ -104,6 +107,18 @@ const Staff = () => {
   const pending = profiles.filter((p) => !roleOf(p.id));
   const active = profiles.filter((p) => roleOf(p.id));
 
+  // Search across name + email, then paginate the active-staff table.
+  const q = query.trim().toLowerCase();
+  const matches = (p: Profile) =>
+    !q ||
+    (p.full_name ?? "").toLowerCase().includes(q) ||
+    (p.email ?? "").toLowerCase().includes(q);
+  const filteredActive = active.filter(matches);
+  const filteredPending = pending.filter(matches);
+  const pageCount = Math.max(1, Math.ceil(filteredActive.length / PAGE_SIZE));
+  const current = Math.min(page, pageCount - 1);
+  const pagedActive = filteredActive.slice(current * PAGE_SIZE, current * PAGE_SIZE + PAGE_SIZE);
+
   return (
     <div className="space-y-6">
       <div>
@@ -115,6 +130,18 @@ const Staff = () => {
         <div className="flex justify-center py-20"><Loader2 className="w-6 h-6 animate-spin text-gold" /></div>
       ) : (
         <>
+          {/* Search */}
+          <div className="relative max-w-sm">
+            <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+            <input
+              type="search"
+              value={query}
+              onChange={(e) => { setQuery(e.target.value); setPage(0); }}
+              placeholder="Search staff by name or email…"
+              className="w-full rounded-lg border border-border bg-background pl-9 pr-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gold/40"
+            />
+          </div>
+
           {/* Role legend */}
           <div className="bg-card rounded-xl border border-border/60 shadow-sm p-4">
             <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
@@ -133,11 +160,11 @@ const Staff = () => {
               <Clock className="w-4 h-4 text-amber-600" />
               <h2 className="font-display text-lg font-semibold">Pending Approval ({pending.length})</h2>
             </div>
-            {pending.length === 0 ? (
+            {filteredPending.length === 0 ? (
               <p className="px-5 py-8 text-center text-sm text-muted-foreground">No sign-ups awaiting approval.</p>
             ) : (
               <div className="divide-y divide-border/40">
-                {pending.map((p) => (
+                {filteredPending.map((p) => (
                   <div key={p.id} className="px-5 py-4 flex flex-wrap items-center justify-between gap-3">
                     <div>
                       <div className="font-medium">{p.full_name || "—"}</div>
