@@ -19,6 +19,7 @@ import Events from "./pages/admin/Events.tsx";
 import EventReservations from "./pages/admin/EventReservations.tsx";
 import VenueReservations from "./pages/admin/VenueReservations.tsx";
 import Staff from "./pages/admin/Staff.tsx";
+import AuditLog from "./pages/admin/AuditLog.tsx";
 
 const queryClient = new QueryClient();
 
@@ -52,6 +53,7 @@ const App = () => (
                 </Route>
                 <Route element={<RequireCap cap="manage_staff" />}>
                   <Route path="staff" element={<Staff />} />
+                  <Route path="audit-log" element={<AuditLog />} />
                 </Route>
               </Route>
             </Route>
