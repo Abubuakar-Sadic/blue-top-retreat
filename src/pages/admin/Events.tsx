@@ -143,7 +143,15 @@ const Events = () => {
               </div>
               <div className="p-4">
                 <h3 className="font-display font-semibold">{ev.title}</h3>
-                <p className="text-xs text-muted-foreground mt-1">{format(new Date(ev.event_at), "MMM d, yyyy · h:mm a")}</p>
+                {ev.event_type === "recurring" ? (
+                  <>
+                    <span className="inline-block mt-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-gold/15 text-gold border border-gold/30">Recurring</span>
+                    <p className="text-xs text-muted-foreground mt-1">{recurrenceLabel(ev)}</p>
+                    {nextOccurrence(ev) && <p className="text-[11px] text-muted-foreground">Next: {format(nextOccurrence(ev)!, "MMM d · h:mm a")}</p>}
+                  </>
+                ) : (
+                  <p className="text-xs text-muted-foreground mt-1">{ev.event_at ? format(new Date(ev.event_at), "MMM d, yyyy · h:mm a") : ""}</p>
+                )}
                 {ev.location && <p className="text-xs text-muted-foreground">{ev.location}</p>}
                 <p className="text-sm text-muted-foreground mt-2 line-clamp-2">{ev.description}</p>
                 <div className="flex items-center justify-between gap-2 mt-4 pt-3 border-t border-border/50">
