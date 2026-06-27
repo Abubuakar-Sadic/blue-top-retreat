@@ -166,33 +166,42 @@ export type Database = {
         Row: {
           created_at: string
           description: string | null
-          event_at: string
+          event_at: string | null
+          event_type: string
           id: string
           image_url: string | null
           is_public: boolean
           location: string | null
+          recurrence_days: number[]
+          recurrence_time: string | null
           title: string
           updated_at: string
         }
         Insert: {
           created_at?: string
           description?: string | null
-          event_at: string
+          event_at?: string | null
+          event_type?: string
           id?: string
           image_url?: string | null
           is_public?: boolean
           location?: string | null
+          recurrence_days?: number[]
+          recurrence_time?: string | null
           title: string
           updated_at?: string
         }
         Update: {
           created_at?: string
           description?: string | null
-          event_at?: string
+          event_at?: string | null
+          event_type?: string
           id?: string
           image_url?: string | null
           is_public?: boolean
           location?: string | null
+          recurrence_days?: number[]
+          recurrence_time?: string | null
           title?: string
           updated_at?: string
         }
@@ -409,6 +418,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      archive_past_events: { Args: never; Returns: undefined }
       can_edit_content: { Args: { _uid: string }; Returns: boolean }
       can_edit_rooms: { Args: { _uid: string }; Returns: boolean }
       can_view_operations: { Args: { _uid: string }; Returns: boolean }
