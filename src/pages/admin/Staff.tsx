@@ -158,7 +158,7 @@ const Staff = () => {
           <div className="bg-card rounded-xl border border-amber-500/30 shadow-sm overflow-hidden">
             <div className="p-4 border-b border-border/60 flex items-center gap-2">
               <Clock className="w-4 h-4 text-amber-600" />
-              <h2 className="font-display text-lg font-semibold">Pending Approval ({pending.length})</h2>
+              <h2 className="font-display text-lg font-semibold">Pending Approval ({filteredPending.length})</h2>
             </div>
             {filteredPending.length === 0 ? (
               <p className="px-5 py-8 text-center text-sm text-muted-foreground">No sign-ups awaiting approval.</p>
@@ -191,7 +191,7 @@ const Staff = () => {
           <div className="bg-card rounded-xl border border-border/60 shadow-sm overflow-hidden">
             <div className="p-4 border-b border-border/60 flex items-center gap-2">
               <UserCog className="w-4 h-4 text-gold" />
-              <h2 className="font-display text-lg font-semibold">Active Staff ({active.length})</h2>
+              <h2 className="font-display text-lg font-semibold">Active Staff ({filteredActive.length})</h2>
             </div>
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
@@ -204,7 +204,7 @@ const Staff = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {active.map((p) => {
+                  {pagedActive.map((p) => {
                     const r = roleOf(p.id);
                     const isCeo = isCeoRole(r);
                     const isSelf = p.id === user?.id;
@@ -243,6 +243,17 @@ const Staff = () => {
                 </tbody>
               </table>
             </div>
+            {pageCount > 1 && (
+              <div className="flex items-center justify-between gap-2 px-5 py-3 border-t border-border/60 text-sm">
+                <span className="text-muted-foreground text-xs">Page {current + 1} of {pageCount}</span>
+                <div className="flex gap-2">
+                  <button disabled={current === 0} onClick={() => setPage(current - 1)}
+                    className="px-3 py-1.5 rounded-md border border-border text-xs disabled:opacity-40 hover:bg-muted">Previous</button>
+                  <button disabled={current >= pageCount - 1} onClick={() => setPage(current + 1)}
+                    className="px-3 py-1.5 rounded-md border border-border text-xs disabled:opacity-40 hover:bg-muted">Next</button>
+                </div>
+              </div>
+            )}
           </div>
         </>
       )}
