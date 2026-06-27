@@ -10,19 +10,24 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { WEEKDAYS, recurrenceLabel, nextOccurrence } from "@/lib/events";
 
 type Event = {
   id: string;
   title: string;
   description: string | null;
-  event_at: string;
+  event_at: string | null;
   location: string | null;
   image_url: string | null;
   is_public: boolean;
+  event_type: string;
+  recurrence_days: number[];
+  recurrence_time: string | null;
 };
 
 const empty: Partial<Event> = {
   title: "", description: "", event_at: "", location: "", image_url: "", is_public: true,
+  event_type: "one_time", recurrence_days: [], recurrence_time: "",
 };
 
 const toLocalInput = (iso: string) => {
@@ -49,7 +54,10 @@ const Events = () => {
   useEffect(() => { load(); }, []);
 
   const openNew = () => { setEditing({ ...empty }); setOpen(true); };
-  const openEdit = (e: Event) => { setEditing({ ...e, event_at: toLocalInput(e.event_at) }); setOpen(true); };
+  const openEdit = (e: Event) => {
+    setEditing({ ...e, event_at: e.event_at ? toLocalInput(e.event_at) : "", recurrence_time: e.recurrence_time ?? "" });
+    setOpen(true);
+  };
 
   const handleImage = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]; if (!file) return;
@@ -64,11 +72,22 @@ const Events = () => {
   };
 
   const save = async () => {
-    if (!editing?.title || !editing?.event_at) { toast.error("Title and date are required"); return; }
+    if (!editing?.title) { toast.error("Title is required"); return; }
+    const isRecurring = editing.event_type === "recurring";
+    if (isRecurring) {
+      if (!editing.recurrence_days?.length || !editing.recurrence_time) {
+        toast.error("Select at least one day and a time for recurring events"); return;
+      }
+    } else if (!editing.event_at) {
+      toast.error("Date and time are required for one-time events"); return;
+    }
     const payload = {
       title: editing.title,
       description: editing.description,
-      event_at: new Date(editing.event_at).toISOString(),
+      event_type: editing.event_type ?? "one_time",
+      event_at: isRecurring ? null : new Date(editing.event_at!).toISOString(),
+      recurrence_days: isRecurring ? (editing.recurrence_days ?? []) : [],
+      recurrence_time: isRecurring ? editing.recurrence_time : null,
       location: editing.location,
       image_url: editing.image_url,
       is_public: editing.is_public ?? true,
@@ -124,7 +143,15 @@ const Events = () => {
               </div>
               <div className="p-4">
                 <h3 className="font-display font-semibold">{ev.title}</h3>
-                <p className="text-xs text-muted-foreground mt-1">{format(new Date(ev.event_at), "MMM d, yyyy · h:mm a")}</p>
+                {ev.event_type === "recurring" ? (
+                  <>
+                    <span className="inline-block mt-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-gold/15 text-gold border border-gold/30">Recurring</span>
+                    <p className="text-xs text-muted-foreground mt-1">{recurrenceLabel(ev)}</p>
+                    {nextOccurrence(ev) && <p className="text-[11px] text-muted-foreground">Next: {format(nextOccurrence(ev)!, "MMM d · h:mm a")}</p>}
+                  </>
+                ) : (
+                  <p className="text-xs text-muted-foreground mt-1">{ev.event_at ? format(new Date(ev.event_at), "MMM d, yyyy · h:mm a") : ""}</p>
+                )}
                 {ev.location && <p className="text-xs text-muted-foreground">{ev.location}</p>}
                 <p className="text-sm text-muted-foreground mt-2 line-clamp-2">{ev.description}</p>
                 <div className="flex items-center justify-between gap-2 mt-4 pt-3 border-t border-border/50">
@@ -149,10 +176,60 @@ const Events = () => {
           {editing && (
             <div className="space-y-4">
               <Field label="Title"><input className="input" value={editing.title ?? ""} onChange={(e) => setEditing({ ...editing, title: e.target.value })} /></Field>
-              <div className="grid sm:grid-cols-2 gap-4">
+              <Field label="Event type">
+                <div className="grid grid-cols-2 gap-2">
+                  {[
+                    { v: "one_time", l: "One-time" },
+                    { v: "recurring", l: "Recurring" },
+                  ].map((opt) => (
+                    <button
+                      key={opt.v}
+                      type="button"
+                      onClick={() => setEditing({ ...editing, event_type: opt.v })}
+                      className={`px-3 py-2 rounded-lg border text-sm font-medium transition-colors ${
+                        (editing.event_type ?? "one_time") === opt.v
+                          ? "border-gold bg-gold/10 text-gold"
+                          : "border-border hover:bg-muted"
+                      }`}
+                    >
+                      {opt.l}
+                    </button>
+                  ))}
+                </div>
+              </Field>
+              {editing.event_type === "recurring" ? (
+                <div className="grid sm:grid-cols-2 gap-4">
+                  <Field label="Repeats on">
+                    <div className="flex flex-wrap gap-1.5">
+                      {WEEKDAYS.map((d) => {
+                        const active = (editing.recurrence_days ?? []).includes(d.value);
+                        return (
+                          <button
+                            key={d.value}
+                            type="button"
+                            onClick={() => {
+                              const cur = editing.recurrence_days ?? [];
+                              setEditing({
+                                ...editing,
+                                recurrence_days: active ? cur.filter((x) => x !== d.value) : [...cur, d.value],
+                              });
+                            }}
+                            className={`w-10 h-9 rounded-md border text-xs font-medium transition-colors ${
+                              active ? "border-gold bg-gold/10 text-gold" : "border-border hover:bg-muted"
+                            }`}
+                          >
+                            {d.short}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </Field>
+                  <Field label="Time"><input type="time" className="input" value={editing.recurrence_time ?? ""} onChange={(e) => setEditing({ ...editing, recurrence_time: e.target.value })} /></Field>
+                </div>
+              ) : (
                 <Field label="Date & Time"><input type="datetime-local" className="input" value={editing.event_at ?? ""} onChange={(e) => setEditing({ ...editing, event_at: e.target.value })} /></Field>
-                <Field label="Location"><input className="input" value={editing.location ?? ""} onChange={(e) => setEditing({ ...editing, location: e.target.value })} placeholder="Poolside Terrace" /></Field>
-              </div>
+              )}
+              <Field label="Location"><input className="input" value={editing.location ?? ""} onChange={(e) => setEditing({ ...editing, location: e.target.value })} placeholder="Poolside Terrace" /></Field>
               <Field label="Description">
                 <textarea rows={4} className="input" value={editing.description ?? ""} onChange={(e) => setEditing({ ...editing, description: e.target.value })} />
               </Field>
