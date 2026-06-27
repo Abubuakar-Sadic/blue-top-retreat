@@ -10,19 +10,24 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { WEEKDAYS, recurrenceLabel, nextOccurrence } from "@/lib/events";
 
 type Event = {
   id: string;
   title: string;
   description: string | null;
-  event_at: string;
+  event_at: string | null;
   location: string | null;
   image_url: string | null;
   is_public: boolean;
+  event_type: string;
+  recurrence_days: number[];
+  recurrence_time: string | null;
 };
 
 const empty: Partial<Event> = {
   title: "", description: "", event_at: "", location: "", image_url: "", is_public: true,
+  event_type: "one_time", recurrence_days: [], recurrence_time: "",
 };
 
 const toLocalInput = (iso: string) => {
@@ -49,7 +54,10 @@ const Events = () => {
   useEffect(() => { load(); }, []);
 
   const openNew = () => { setEditing({ ...empty }); setOpen(true); };
-  const openEdit = (e: Event) => { setEditing({ ...e, event_at: toLocalInput(e.event_at) }); setOpen(true); };
+  const openEdit = (e: Event) => {
+    setEditing({ ...e, event_at: e.event_at ? toLocalInput(e.event_at) : "", recurrence_time: e.recurrence_time ?? "" });
+    setOpen(true);
+  };
 
   const handleImage = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]; if (!file) return;
@@ -64,11 +72,22 @@ const Events = () => {
   };
 
   const save = async () => {
-    if (!editing?.title || !editing?.event_at) { toast.error("Title and date are required"); return; }
+    if (!editing?.title) { toast.error("Title is required"); return; }
+    const isRecurring = editing.event_type === "recurring";
+    if (isRecurring) {
+      if (!editing.recurrence_days?.length || !editing.recurrence_time) {
+        toast.error("Select at least one day and a time for recurring events"); return;
+      }
+    } else if (!editing.event_at) {
+      toast.error("Date and time are required for one-time events"); return;
+    }
     const payload = {
       title: editing.title,
       description: editing.description,
-      event_at: new Date(editing.event_at).toISOString(),
+      event_type: editing.event_type ?? "one_time",
+      event_at: isRecurring ? null : new Date(editing.event_at!).toISOString(),
+      recurrence_days: isRecurring ? (editing.recurrence_days ?? []) : [],
+      recurrence_time: isRecurring ? editing.recurrence_time : null,
       location: editing.location,
       image_url: editing.image_url,
       is_public: editing.is_public ?? true,
