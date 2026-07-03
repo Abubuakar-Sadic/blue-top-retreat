@@ -13,4 +13,4 @@ Allow: /
 User-agent: *
 Allow: /
 
-Sitemap: https://blue-top-retreat.lovable.app/sitemap.xml
+Sitemap: https://Bluetopvilla.com/sitemap.xml
