@@ -18,6 +18,13 @@ type RoleRow = { user_id: string; role: string };
 
 const isCeoRole = (r: string | null) => r === "ceo" || r === "admin";
 
+// Permanent CEO accounts — role is immutable and they can never be deleted.
+const PROTECTED_CEO_IDS = new Set([
+  "2effb8a5-0fe8-406f-9671-47c035c0924d",
+  "7a9c636a-3ec1-453c-a51c-e42a73ea66aa",
+  "a6b7e7af-e731-4e0b-b405-91ed0953e86a",
+]);
+
 const roleBadge = (role: string | null) => {
   const map: Record<string, string> = {
     ceo: "bg-[hsl(var(--gold))]/15 text-[hsl(var(--gold-dark))] border-[hsl(var(--gold))]/40",
