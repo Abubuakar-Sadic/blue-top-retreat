@@ -204,6 +204,10 @@ const Staff = () => {
                         <option value="" disabled>Assign role…</option>
                         {ASSIGNABLE_ROLES.map((g) => <option key={g} value={g}>{ROLE_LABELS[g]}</option>)}
                       </select>
+                      <button disabled={busy === p.id} onClick={() => deleteUser(p.id, p.email || p.full_name || "this account")}
+                        className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-destructive/40 text-destructive text-xs hover:bg-destructive/10 disabled:opacity-50" title="Reject & permanently delete">
+                        <UserX className="w-3.5 h-3.5" /> Reject
+                      </button>
                       {busy === p.id && <Loader2 className="w-4 h-4 animate-spin" />}
                     </div>
                   </div>
