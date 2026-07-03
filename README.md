@@ -8,7 +8,7 @@ This project was designed to modernize Blue Top Villa's online presence while si
 
 ## Live Website
 
-https://Bluetopvilla.com
+https://bluetopvilla.com
 
 ---
 

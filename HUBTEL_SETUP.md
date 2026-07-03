@@ -10,7 +10,7 @@ credentials into ONE file. Everything else is done.
 
 | Item | Value |
 |------|-------|
-| Website URL | `https://blue-top-retreat.lovable.app` |
+| Website URL | `https://bluetopvilla.com` |
 | Payment Callback / Webhook URL | `https://sgbpuqugkhgcmdsykemp.supabase.co/functions/v1/hubtel-callback` |
 | Payment API used | Receive Mobile Money (RMP) |
 | Supported channels | `mtn-gh`, `vodafone-gh` (Telecel), `airteltigo-gh` |
