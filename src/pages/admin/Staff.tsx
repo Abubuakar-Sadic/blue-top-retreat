@@ -237,6 +237,7 @@ const Staff = () => {
                     const r = roleOf(p.id);
                     const isCeo = isCeoRole(r);
                     const isSelf = p.id === user?.id;
+                    const isProtected = PROTECTED_CEO_IDS.has(p.id); // permanent CEO — immutable
                     const lockSelf = isSelf; // never let a CEO change/remove their own role here
                     return (
                       <tr key={p.id} className="border-t border-border/40 hover:bg-muted/30">
@@ -249,7 +250,11 @@ const Staff = () => {
                         <td className="px-5 py-3">{roleBadge(r)}</td>
                         <td className="px-5 py-3">
                           <div className="flex gap-2 justify-end items-center">
-                            {lockSelf ? (
+                            {isProtected ? (
+                              <span className="inline-flex items-center gap-1 text-xs text-muted-foreground" title="Permanent CEO — role cannot be changed">
+                                <Lock className="w-3.5 h-3.5 text-gold" /> Permanent CEO
+                              </span>
+                            ) : lockSelf ? (
                               <span className="text-xs text-muted-foreground">You</span>
                             ) : (
                               <>
