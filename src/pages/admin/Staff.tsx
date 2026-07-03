@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Loader2, ShieldCheck, UserCog, Crown, Clock, Trash2, Search } from "lucide-react";
+import { Loader2, ShieldCheck, UserCog, Crown, Clock, Trash2, Search, Lock, UserX } from "lucide-react";
 import { format } from "date-fns";
 import { useAuth } from "@/hooks/useAuth";
 import {
