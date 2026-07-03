@@ -8,7 +8,7 @@ import { createClient } from "npm:@supabase/supabase-js@2";
  *  Replace the empty quotes "" with the values Hubtel issued, then save.
  *  Example:  CLIENT_ID = "abc123xyz"
  *
- *  Site URL     : https://bluetopvilla.com
+ *  Site URL     : https://www.bluetopvilla.com
  *  Callback URL : https://sgbpuqugkhgcmdsykemp.supabase.co/functions/v1/hubtel-callback
  * ========================================================================= */
 const HUBTEL = {
