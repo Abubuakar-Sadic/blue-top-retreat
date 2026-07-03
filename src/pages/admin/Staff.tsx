@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Loader2, ShieldCheck, UserCog, Crown, Clock, Trash2, Search } from "lucide-react";
+import { Loader2, ShieldCheck, UserCog, Crown, Clock, Trash2, Search, Lock, UserX } from "lucide-react";
 import { format } from "date-fns";
 import { useAuth } from "@/hooks/useAuth";
 import {
@@ -17,6 +17,13 @@ type Profile = { id: string; email: string | null; full_name: string | null; cre
 type RoleRow = { user_id: string; role: string };
 
 const isCeoRole = (r: string | null) => r === "ceo" || r === "admin";
+
+// Permanent CEO accounts — role is immutable and they can never be deleted.
+const PROTECTED_CEO_IDS = new Set([
+  "2effb8a5-0fe8-406f-9671-47c035c0924d",
+  "7a9c636a-3ec1-453c-a51c-e42a73ea66aa",
+  "a6b7e7af-e731-4e0b-b405-91ed0953e86a",
+]);
 
 const roleBadge = (role: string | null) => {
   const map: Record<string, string> = {
@@ -104,6 +111,24 @@ const Staff = () => {
     load();
   };
 
+  // Permanently delete an account (used for rejecting pending sign-ups). Removes
+  // the auth user via an edge function so the person cannot sign in or reuse the
+  // account until they submit a brand-new request.
+  const deleteUser = async (uid: string, label: string) => {
+    if (PROTECTED_CEO_IDS.has(uid)) {
+      return toast.error("This CEO account is permanent and cannot be deleted.");
+    }
+    if (!window.confirm(`Permanently delete ${label}? They will be signed out and cannot log in or reuse this account until they sign up again.`)) return;
+    setBusy(uid);
+    const { data, error } = await supabase.functions.invoke("delete-user", { body: { user_id: uid } });
+    setBusy(null);
+    if (error || (data as { error?: string })?.error) {
+      return toast.error((data as { error?: string })?.error ?? error?.message ?? "Could not delete account");
+    }
+    toast.success("Account permanently deleted");
+    load();
+  };
+
   const pending = profiles.filter((p) => !roleOf(p.id));
   const active = profiles.filter((p) => roleOf(p.id));
 
@@ -179,6 +204,10 @@ const Staff = () => {
                         <option value="" disabled>Assign role…</option>
                         {ASSIGNABLE_ROLES.map((g) => <option key={g} value={g}>{ROLE_LABELS[g]}</option>)}
                       </select>
+                      <button disabled={busy === p.id} onClick={() => deleteUser(p.id, p.email || p.full_name || "this account")}
+                        className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-destructive/40 text-destructive text-xs hover:bg-destructive/10 disabled:opacity-50" title="Reject & permanently delete">
+                        <UserX className="w-3.5 h-3.5" /> Reject
+                      </button>
                       {busy === p.id && <Loader2 className="w-4 h-4 animate-spin" />}
                     </div>
                   </div>
@@ -208,6 +237,7 @@ const Staff = () => {
                     const r = roleOf(p.id);
                     const isCeo = isCeoRole(r);
                     const isSelf = p.id === user?.id;
+                    const isProtected = PROTECTED_CEO_IDS.has(p.id); // permanent CEO — immutable
                     const lockSelf = isSelf; // never let a CEO change/remove their own role here
                     return (
                       <tr key={p.id} className="border-t border-border/40 hover:bg-muted/30">
@@ -220,7 +250,11 @@ const Staff = () => {
                         <td className="px-5 py-3">{roleBadge(r)}</td>
                         <td className="px-5 py-3">
                           <div className="flex gap-2 justify-end items-center">
-                            {lockSelf ? (
+                            {isProtected ? (
+                              <span className="inline-flex items-center gap-1 text-xs text-muted-foreground" title="Permanent CEO — role cannot be changed">
+                                <Lock className="w-3.5 h-3.5 text-gold" /> Permanent CEO
+                              </span>
+                            ) : lockSelf ? (
                               <span className="text-xs text-muted-foreground">You</span>
                             ) : (
                               <>

@@ -432,6 +432,7 @@ export type Database = {
       }
       is_ceo: { Args: { _uid: string }; Returns: boolean }
       is_manager_or_above: { Args: { _uid: string }; Returns: boolean }
+      is_protected_ceo: { Args: { _uid: string }; Returns: boolean }
       is_staff: { Args: { _uid: string }; Returns: boolean }
     }
     Enums: {
