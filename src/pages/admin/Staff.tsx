@@ -111,6 +111,24 @@ const Staff = () => {
     load();
   };
 
+  // Permanently delete an account (used for rejecting pending sign-ups). Removes
+  // the auth user via an edge function so the person cannot sign in or reuse the
+  // account until they submit a brand-new request.
+  const deleteUser = async (uid: string, label: string) => {
+    if (PROTECTED_CEO_IDS.has(uid)) {
+      return toast.error("This CEO account is permanent and cannot be deleted.");
+    }
+    if (!window.confirm(`Permanently delete ${label}? They will be signed out and cannot log in or reuse this account until they sign up again.`)) return;
+    setBusy(uid);
+    const { data, error } = await supabase.functions.invoke("delete-user", { body: { user_id: uid } });
+    setBusy(null);
+    if (error || (data as { error?: string })?.error) {
+      return toast.error((data as { error?: string })?.error ?? error?.message ?? "Could not delete account");
+    }
+    toast.success("Account permanently deleted");
+    load();
+  };
+
   const pending = profiles.filter((p) => !roleOf(p.id));
   const active = profiles.filter((p) => roleOf(p.id));
 
