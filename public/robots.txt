@@ -13,4 +13,4 @@ Allow: /
 User-agent: *
 Allow: /
 
-Sitemap: https://bluetopvilla.com/sitemap.xml
+Sitemap: https://www.bluetopvilla.com/sitemap.xml
