@@ -85,7 +85,7 @@ const BookRoomModal = ({ open, onOpenChange, room }: Props) => {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-lg max-h-[90vh]">
         {code ? (
           <div className="text-center py-6 space-y-4">
             <CheckCircle2 className="w-14 h-14 text-emerald-500 mx-auto" />
