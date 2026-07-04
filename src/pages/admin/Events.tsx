@@ -171,7 +171,7 @@ const Events = () => {
       )}
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-w-xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-xl max-h-[90vh]">
           <DialogHeader><DialogTitle className="font-display text-2xl">{editing?.id ? "Edit Event" : "New Event"}</DialogTitle></DialogHeader>
           {editing && (
             <div className="space-y-4">

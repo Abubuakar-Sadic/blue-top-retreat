@@ -65,7 +65,7 @@ const RoomDetailModal = ({ open, onOpenChange, room, onBook }: RoomDetailModalPr
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto p-0 bg-background border-gold/20">
+      <DialogContent className="max-w-2xl max-h-[90vh] p-0 bg-background border-gold/20">
         <div className="overflow-hidden rounded-t-lg">
           <img
             src={room.featured_image || "/placeholder.svg"}
