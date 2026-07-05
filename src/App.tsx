@@ -12,6 +12,7 @@ import RequireCap from "./components/admin/RequireRole.tsx";
 import AdminLayout from "./components/admin/AdminLayout.tsx";
 import Overview from "./pages/admin/Overview.tsx";
 import Rooms from "./pages/admin/Rooms.tsx";
+import Gallery from "./pages/admin/Gallery.tsx";
 import Bookings from "./pages/admin/Bookings.tsx";
 import Payments from "./pages/admin/Payments.tsx";
 import Messages from "./pages/admin/Messages.tsx";
@@ -44,6 +45,7 @@ const App = () => (
                 </Route>
                 <Route element={<RequireCap cap="manage_rooms" />}>
                   <Route path="rooms" element={<Rooms />} />
+                  <Route path="gallery" element={<Gallery />} />
                 </Route>
                 <Route element={<RequireCap cap="manage_events" />}>
                   <Route path="events" element={<Events />} />
