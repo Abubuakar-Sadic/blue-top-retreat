@@ -1,5 +1,5 @@
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
-import { LayoutDashboard, BedDouble, CalendarCheck, CreditCard, MessageSquare, LogOut, Crown, Sparkles, Ticket, PartyPopper, Users, History } from "lucide-react";
+import { LayoutDashboard, BedDouble, CalendarCheck, CreditCard, MessageSquare, LogOut, Crown, Sparkles, Ticket, PartyPopper, Users, History, Images } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { ROLE_LABELS, type Capability, type StaffRole } from "@/lib/permissions";
 import {
@@ -16,6 +16,7 @@ const items: { to: string; label: string; icon: typeof LayoutDashboard; end?: bo
   { to: "/admin/venue-reservations", label: "Venue Bookings", icon: PartyPopper, cap: "manage_bookings" },
   { to: "/admin/messages", label: "Messages", icon: MessageSquare, cap: "manage_bookings" },
   { to: "/admin/rooms", label: "Rooms", icon: BedDouble, cap: "manage_rooms" },
+  { to: "/admin/gallery", label: "Gallery", icon: Images, cap: "manage_rooms" },
   { to: "/admin/events", label: "Events", icon: Sparkles, cap: "manage_events" },
   { to: "/admin/payments", label: "Payments", icon: CreditCard, cap: "manage_payments" },
   { to: "/admin/staff", label: "Staff & Roles", icon: Users, cap: "manage_staff" },
