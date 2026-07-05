@@ -44,8 +44,10 @@ const Gallery = () => {
   };
   useEffect(() => { load(); }, []);
 
-  const openNew = () =>
-    setEditing({ ...empty, sort_order: images.length ? Math.max(...images.map((i) => i.sort_order)) + 1 : 0 }) || setOpen(true);
+  const openNew = () => {
+    setEditing({ ...empty, sort_order: images.length ? Math.max(...images.map((i) => i.sort_order)) + 1 : 0 });
+    setOpen(true);
+  };
   const openEdit = (g: GalleryImage) => { setEditing({ ...g }); setOpen(true); };
 
   const uploadFile = async (file: File): Promise<string | null> => {
