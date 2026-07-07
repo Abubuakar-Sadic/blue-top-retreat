@@ -347,6 +347,7 @@ export type Database = {
           room_type: string | null
           slug: string | null
           updated_at: string
+          videos: string[]
         }
         Insert: {
           amenities?: string[]
@@ -362,6 +363,7 @@ export type Database = {
           room_type?: string | null
           slug?: string | null
           updated_at?: string
+          videos?: string[]
         }
         Update: {
           amenities?: string[]
@@ -377,6 +379,7 @@ export type Database = {
           room_type?: string | null
           slug?: string | null
           updated_at?: string
+          videos?: string[]
         }
         Relationships: []
       }
