@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Plus, Pencil, Trash2, Loader2, Upload, X, Image as ImageIcon } from "lucide-react";
+import { Plus, Pencil, Trash2, Loader2, Upload, X, Image as ImageIcon, Film } from "lucide-react";
+import { convertImageToWebP, validateRoomVideo, storagePathFromPublicUrl, MAX_VIDEO_SECONDS } from "@/lib/media";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
@@ -20,12 +21,13 @@ type Room = {
   amenities: string[];
   featured_image: string | null;
   gallery_images: string[];
+  videos: string[];
   is_available: boolean;
 };
 
 const empty: Partial<Room> = {
   room_name: "", description: "", price_per_night: 0, capacity: 2,
-  room_type: "Standard", amenities: [], featured_image: "", gallery_images: [], is_available: true,
+  room_type: "Standard", amenities: [], featured_image: "", gallery_images: [], videos: [], is_available: true,
 };
 
 const Rooms = () => {
@@ -36,8 +38,11 @@ const Rooms = () => {
   const [confirmDel, setConfirmDel] = useState<Room | null>(null);
   const [amenityInput, setAmenityInput] = useState("");
   const [uploading, setUploading] = useState(false);
+  const [mediaDel, setMediaDel] = useState<{ kind: "featured" | "gallery" | "video"; url: string } | null>(null);
+  const [deletingMedia, setDeletingMedia] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
   const galleryRef = useRef<HTMLInputElement>(null);
+  const videoRef = useRef<HTMLInputElement>(null);
 
   const load = async () => {
     setLoading(true);
@@ -50,29 +55,85 @@ const Rooms = () => {
   const openNew = () => { setEditing({ ...empty }); setOpen(true); };
   const openEdit = (r: Room) => { setEditing({ ...r }); setOpen(true); };
 
-  const uploadFile = async (file: File): Promise<string | null> => {
-    const ext = file.name.split(".").pop();
+  const uploadFile = async (file: File, ext: string): Promise<string | null> => {
     const path = `room-${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
     const { error } = await supabase.storage.from("rooms").upload(path, file, { upsert: false });
-    if (error) { toast.error(error.message); return null; }
+    if (error) { toast.error(`Upload failed: ${error.message}`); return null; }
     const { data } = supabase.storage.from("rooms").getPublicUrl(path);
     return data.publicUrl;
   };
 
   const handleFeatured = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]; if (!file) return;
+    const file = e.target.files?.[0]; e.target.value = ""; if (!file) return;
     setUploading(true);
-    const url = await uploadFile(file);
-    if (url) setEditing((p) => ({ ...p!, featured_image: url }));
-    setUploading(false);
+    try {
+      const webp = await convertImageToWebP(file);
+      const url = await uploadFile(webp, "webp");
+      if (url) setEditing((p) => ({ ...p!, featured_image: url }));
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Image upload failed.");
+    } finally { setUploading(false); }
   };
   const handleGallery = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files ?? []); if (!files.length) return;
+    const files = Array.from(e.target.files ?? []); e.target.value = ""; if (!files.length) return;
     setUploading(true);
     const urls: string[] = [];
-    for (const f of files) { const u = await uploadFile(f); if (u) urls.push(u); }
-    setEditing((p) => ({ ...p!, gallery_images: [...(p?.gallery_images ?? []), ...urls] }));
+    for (const f of files) {
+      try {
+        const webp = await convertImageToWebP(f);
+        const u = await uploadFile(webp, "webp");
+        if (u) urls.push(u);
+      } catch (err) {
+        toast.error(err instanceof Error ? err.message : `Could not process "${f.name}".`);
+      }
+    }
+    if (urls.length) setEditing((p) => ({ ...p!, gallery_images: [...(p?.gallery_images ?? []), ...urls] }));
     setUploading(false);
+  };
+  const handleVideo = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]; e.target.value = ""; if (!file) return;
+    setUploading(true);
+    try {
+      const valid = await validateRoomVideo(file);
+      const url = await uploadFile(valid, "mp4");
+      if (url) setEditing((p) => ({ ...p!, videos: [...(p?.videos ?? []), url] }));
+      else return;
+      toast.success("Video uploaded.");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Video processing failed.");
+    } finally { setUploading(false); }
+  };
+
+  // Delete a single media file: remove from storage, from editing state, and
+  // persist immediately when the room already exists.
+  const deleteMedia = async () => {
+    if (!mediaDel) return;
+    setDeletingMedia(true);
+    const { kind, url } = mediaDel;
+    try {
+      const path = storagePathFromPublicUrl(url, "rooms");
+      if (path) {
+        const { error } = await supabase.storage.from("rooms").remove([path]);
+        // Ignore "not found" so a missing file can still be unlinked from the room.
+        if (error && !/not.?found/i.test(error.message)) throw new Error(error.message);
+      }
+      const next: Partial<Room> = { ...editing! };
+      if (kind === "featured") next.featured_image = "";
+      if (kind === "gallery") next.gallery_images = (editing?.gallery_images ?? []).filter((g) => g !== url);
+      if (kind === "video") next.videos = (editing?.videos ?? []).filter((v) => v !== url);
+      setEditing(next);
+      if (editing?.id) {
+        const col = kind === "featured" ? { featured_image: next.featured_image } : kind === "gallery" ? { gallery_images: next.gallery_images } : { videos: next.videos };
+        const { error } = await supabase.from("rooms").update(col).eq("id", editing.id);
+        if (error) throw new Error(error.message);
+      }
+      toast.success("Media deleted.");
+    } catch (err) {
+      toast.error(err instanceof Error ? `Delete failed: ${err.message}` : "Delete failed.");
+    } finally {
+      setDeletingMedia(false);
+      setMediaDel(null);
+    }
   };
 
   const save = async () => {
@@ -86,6 +147,7 @@ const Rooms = () => {
       amenities: editing.amenities ?? [],
       featured_image: editing.featured_image,
       gallery_images: editing.gallery_images ?? [],
+      videos: editing.videos ?? [],
       is_available: editing.is_available ?? true,
       slug: editing.room_name?.toLowerCase().replace(/\s+/g, "-"),
     };
@@ -193,8 +255,15 @@ const Rooms = () => {
                 </div>
               </Field>
               <Field label="Featured Image">
+                <p className="text-xs text-muted-foreground mb-2">Images are auto-converted to WebP (~80% quality) for faster loading.</p>
                 <div className="flex items-center gap-3">
-                  {editing.featured_image && <img src={editing.featured_image} alt="" className="w-20 h-20 object-cover rounded-lg" />}
+                  {editing.featured_image && (
+                    <div className="relative">
+                      <img src={editing.featured_image} alt="" className="w-20 h-20 object-cover rounded-lg" />
+                      <button type="button" title="Delete image" onClick={() => setMediaDel({ kind: "featured", url: editing.featured_image! })}
+                        className="absolute -top-1.5 -right-1.5 bg-destructive text-white rounded-full p-1 shadow"><Trash2 className="w-3 h-3" /></button>
+                    </div>
+                  )}
                   <button type="button" onClick={() => fileRef.current?.click()} className="px-3 py-2 rounded-lg border hover:bg-muted text-sm flex items-center gap-2">
                     <Upload className="w-4 h-4" /> Upload
                   </button>
@@ -206,8 +275,8 @@ const Rooms = () => {
                   {(editing.gallery_images ?? []).map((g, i) => (
                     <div key={i} className="relative">
                       <img src={g} alt="" className="w-16 h-16 object-cover rounded-lg" />
-                      <button onClick={() => setEditing({ ...editing, gallery_images: editing.gallery_images!.filter((_, j) => j !== i) })}
-                        className="absolute -top-1 -right-1 bg-destructive text-white rounded-full p-0.5"><X className="w-3 h-3" /></button>
+                      <button type="button" title="Delete image" onClick={() => setMediaDel({ kind: "gallery", url: g })}
+                        className="absolute -top-1.5 -right-1.5 bg-destructive text-white rounded-full p-1 shadow"><Trash2 className="w-3 h-3" /></button>
                     </div>
                   ))}
                 </div>
@@ -215,6 +284,23 @@ const Rooms = () => {
                   <Upload className="w-4 h-4" /> Add Photos
                 </button>
                 <input ref={galleryRef} type="file" accept="image/*" multiple hidden onChange={handleGallery} />
+              </Field>
+              <Field label="Room Videos">
+                <p className="text-xs text-muted-foreground mb-2">MP4 (H.264 + AAC) only, max {MAX_VIDEO_SECONDS} seconds per clip.</p>
+                <div className="flex flex-wrap gap-3 mb-2">
+                  {(editing.videos ?? []).map((v, i) => (
+                    <div key={i} className="relative">
+                      <video src={v} controls playsInline preload="metadata"
+                        className="w-40 h-24 object-cover rounded-lg border border-border/60 bg-black" />
+                      <button type="button" title="Delete video" onClick={() => setMediaDel({ kind: "video", url: v })}
+                        className="absolute -top-1.5 -right-1.5 bg-destructive text-white rounded-full p-1 shadow"><Trash2 className="w-3 h-3" /></button>
+                    </div>
+                  ))}
+                </div>
+                <button type="button" onClick={() => videoRef.current?.click()} className="px-3 py-2 rounded-lg border hover:bg-muted text-sm flex items-center gap-2">
+                  <Film className="w-4 h-4" /> Add Video
+                </button>
+                <input ref={videoRef} type="file" accept="video/mp4" hidden onChange={handleVideo} />
               </Field>
               <label className="flex items-center gap-2 text-sm">
                 <input type="checkbox" checked={editing.is_available ?? true} onChange={(e) => setEditing({ ...editing, is_available: e.target.checked })} className="accent-[hsl(var(--gold))]" />
@@ -238,6 +324,23 @@ const Rooms = () => {
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction onClick={remove} className="bg-destructive">Delete</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={!!mediaDel} onOpenChange={(o) => !o && !deletingMedia && setMediaDel(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete this {mediaDel?.kind === "video" ? "video" : "image"}?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This file will be permanently removed from storage. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deletingMedia}>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={(e) => { e.preventDefault(); deleteMedia(); }} disabled={deletingMedia} className="bg-destructive">
+              {deletingMedia ? "Deleting…" : "Delete"}
+            </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

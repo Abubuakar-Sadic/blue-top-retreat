@@ -1,0 +1,1 @@
+ALTER TABLE public.rooms ADD COLUMN IF NOT EXISTS videos text[] NOT NULL DEFAULT '{}';
