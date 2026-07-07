@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Plus, Pencil, Trash2, Loader2, Upload, X, Image as ImageIcon, Film, Play } from "lucide-react";
+import { Plus, Pencil, Trash2, Loader2, Upload, X, Image as ImageIcon, Film } from "lucide-react";
 import { convertImageToWebP, validateRoomVideo, storagePathFromPublicUrl, MAX_VIDEO_SECONDS } from "@/lib/media";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
