@@ -38,8 +38,11 @@ const Rooms = () => {
   const [confirmDel, setConfirmDel] = useState<Room | null>(null);
   const [amenityInput, setAmenityInput] = useState("");
   const [uploading, setUploading] = useState(false);
+  const [mediaDel, setMediaDel] = useState<{ kind: "featured" | "gallery" | "video"; url: string } | null>(null);
+  const [deletingMedia, setDeletingMedia] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
   const galleryRef = useRef<HTMLInputElement>(null);
+  const videoRef = useRef<HTMLInputElement>(null);
 
   const load = async () => {
     setLoading(true);
@@ -52,29 +55,85 @@ const Rooms = () => {
   const openNew = () => { setEditing({ ...empty }); setOpen(true); };
   const openEdit = (r: Room) => { setEditing({ ...r }); setOpen(true); };
 
-  const uploadFile = async (file: File): Promise<string | null> => {
-    const ext = file.name.split(".").pop();
+  const uploadFile = async (file: File, ext: string): Promise<string | null> => {
     const path = `room-${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
     const { error } = await supabase.storage.from("rooms").upload(path, file, { upsert: false });
-    if (error) { toast.error(error.message); return null; }
+    if (error) { toast.error(`Upload failed: ${error.message}`); return null; }
     const { data } = supabase.storage.from("rooms").getPublicUrl(path);
     return data.publicUrl;
   };
 
   const handleFeatured = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]; if (!file) return;
+    const file = e.target.files?.[0]; e.target.value = ""; if (!file) return;
     setUploading(true);
-    const url = await uploadFile(file);
-    if (url) setEditing((p) => ({ ...p!, featured_image: url }));
-    setUploading(false);
+    try {
+      const webp = await convertImageToWebP(file);
+      const url = await uploadFile(webp, "webp");
+      if (url) setEditing((p) => ({ ...p!, featured_image: url }));
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Image upload failed.");
+    } finally { setUploading(false); }
   };
   const handleGallery = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files ?? []); if (!files.length) return;
+    const files = Array.from(e.target.files ?? []); e.target.value = ""; if (!files.length) return;
     setUploading(true);
     const urls: string[] = [];
-    for (const f of files) { const u = await uploadFile(f); if (u) urls.push(u); }
-    setEditing((p) => ({ ...p!, gallery_images: [...(p?.gallery_images ?? []), ...urls] }));
+    for (const f of files) {
+      try {
+        const webp = await convertImageToWebP(f);
+        const u = await uploadFile(webp, "webp");
+        if (u) urls.push(u);
+      } catch (err) {
+        toast.error(err instanceof Error ? err.message : `Could not process "${f.name}".`);
+      }
+    }
+    if (urls.length) setEditing((p) => ({ ...p!, gallery_images: [...(p?.gallery_images ?? []), ...urls] }));
     setUploading(false);
+  };
+  const handleVideo = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]; e.target.value = ""; if (!file) return;
+    setUploading(true);
+    try {
+      const valid = await validateRoomVideo(file);
+      const url = await uploadFile(valid, "mp4");
+      if (url) setEditing((p) => ({ ...p!, videos: [...(p?.videos ?? []), url] }));
+      else return;
+      toast.success("Video uploaded.");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Video processing failed.");
+    } finally { setUploading(false); }
+  };
+
+  // Delete a single media file: remove from storage, from editing state, and
+  // persist immediately when the room already exists.
+  const deleteMedia = async () => {
+    if (!mediaDel) return;
+    setDeletingMedia(true);
+    const { kind, url } = mediaDel;
+    try {
+      const path = storagePathFromPublicUrl(url, "rooms");
+      if (path) {
+        const { error } = await supabase.storage.from("rooms").remove([path]);
+        // Ignore "not found" so a missing file can still be unlinked from the room.
+        if (error && !/not.?found/i.test(error.message)) throw new Error(error.message);
+      }
+      const next: Partial<Room> = { ...editing! };
+      if (kind === "featured") next.featured_image = "";
+      if (kind === "gallery") next.gallery_images = (editing?.gallery_images ?? []).filter((g) => g !== url);
+      if (kind === "video") next.videos = (editing?.videos ?? []).filter((v) => v !== url);
+      setEditing(next);
+      if (editing?.id) {
+        const col = kind === "featured" ? { featured_image: next.featured_image } : kind === "gallery" ? { gallery_images: next.gallery_images } : { videos: next.videos };
+        const { error } = await supabase.from("rooms").update(col).eq("id", editing.id);
+        if (error) throw new Error(error.message);
+      }
+      toast.success("Media deleted.");
+    } catch (err) {
+      toast.error(err instanceof Error ? `Delete failed: ${err.message}` : "Delete failed.");
+    } finally {
+      setDeletingMedia(false);
+      setMediaDel(null);
+    }
   };
 
   const save = async () => {
@@ -88,6 +147,7 @@ const Rooms = () => {
       amenities: editing.amenities ?? [],
       featured_image: editing.featured_image,
       gallery_images: editing.gallery_images ?? [],
+      videos: editing.videos ?? [],
       is_available: editing.is_available ?? true,
       slug: editing.room_name?.toLowerCase().replace(/\s+/g, "-"),
     };
