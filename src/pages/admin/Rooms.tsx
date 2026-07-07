@@ -255,8 +255,15 @@ const Rooms = () => {
                 </div>
               </Field>
               <Field label="Featured Image">
+                <p className="text-xs text-muted-foreground mb-2">Images are auto-converted to WebP (~80% quality) for faster loading.</p>
                 <div className="flex items-center gap-3">
-                  {editing.featured_image && <img src={editing.featured_image} alt="" className="w-20 h-20 object-cover rounded-lg" />}
+                  {editing.featured_image && (
+                    <div className="relative">
+                      <img src={editing.featured_image} alt="" className="w-20 h-20 object-cover rounded-lg" />
+                      <button type="button" title="Delete image" onClick={() => setMediaDel({ kind: "featured", url: editing.featured_image! })}
+                        className="absolute -top-1.5 -right-1.5 bg-destructive text-white rounded-full p-1 shadow"><Trash2 className="w-3 h-3" /></button>
+                    </div>
+                  )}
                   <button type="button" onClick={() => fileRef.current?.click()} className="px-3 py-2 rounded-lg border hover:bg-muted text-sm flex items-center gap-2">
                     <Upload className="w-4 h-4" /> Upload
                   </button>
@@ -268,8 +275,8 @@ const Rooms = () => {
                   {(editing.gallery_images ?? []).map((g, i) => (
                     <div key={i} className="relative">
                       <img src={g} alt="" className="w-16 h-16 object-cover rounded-lg" />
-                      <button onClick={() => setEditing({ ...editing, gallery_images: editing.gallery_images!.filter((_, j) => j !== i) })}
-                        className="absolute -top-1 -right-1 bg-destructive text-white rounded-full p-0.5"><X className="w-3 h-3" /></button>
+                      <button type="button" title="Delete image" onClick={() => setMediaDel({ kind: "gallery", url: g })}
+                        className="absolute -top-1.5 -right-1.5 bg-destructive text-white rounded-full p-1 shadow"><Trash2 className="w-3 h-3" /></button>
                     </div>
                   ))}
                 </div>
@@ -277,6 +284,23 @@ const Rooms = () => {
                   <Upload className="w-4 h-4" /> Add Photos
                 </button>
                 <input ref={galleryRef} type="file" accept="image/*" multiple hidden onChange={handleGallery} />
+              </Field>
+              <Field label="Room Videos">
+                <p className="text-xs text-muted-foreground mb-2">MP4 (H.264 + AAC) only, max {MAX_VIDEO_SECONDS} seconds per clip.</p>
+                <div className="flex flex-wrap gap-3 mb-2">
+                  {(editing.videos ?? []).map((v, i) => (
+                    <div key={i} className="relative">
+                      <video src={v} controls playsInline preload="metadata"
+                        className="w-40 h-24 object-cover rounded-lg border border-border/60 bg-black" />
+                      <button type="button" title="Delete video" onClick={() => setMediaDel({ kind: "video", url: v })}
+                        className="absolute -top-1.5 -right-1.5 bg-destructive text-white rounded-full p-1 shadow"><Trash2 className="w-3 h-3" /></button>
+                    </div>
+                  ))}
+                </div>
+                <button type="button" onClick={() => videoRef.current?.click()} className="px-3 py-2 rounded-lg border hover:bg-muted text-sm flex items-center gap-2">
+                  <Film className="w-4 h-4" /> Add Video
+                </button>
+                <input ref={videoRef} type="file" accept="video/mp4" hidden onChange={handleVideo} />
               </Field>
               <label className="flex items-center gap-2 text-sm">
                 <input type="checkbox" checked={editing.is_available ?? true} onChange={(e) => setEditing({ ...editing, is_available: e.target.checked })} className="accent-[hsl(var(--gold))]" />
