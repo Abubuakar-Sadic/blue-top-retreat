@@ -327,6 +327,23 @@ const Rooms = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <AlertDialog open={!!mediaDel} onOpenChange={(o) => !o && !deletingMedia && setMediaDel(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete this {mediaDel?.kind === "video" ? "video" : "image"}?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This file will be permanently removed from storage. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deletingMedia}>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={(e) => { e.preventDefault(); deleteMedia(); }} disabled={deletingMedia} className="bg-destructive">
+              {deletingMedia ? "Deleting…" : "Delete"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
