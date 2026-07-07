@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Plus, Pencil, Trash2, Loader2, Upload, X, Image as ImageIcon } from "lucide-react";
+import { Plus, Pencil, Trash2, Loader2, Upload, X, Image as ImageIcon, Film, Play } from "lucide-react";
+import { convertImageToWebP, validateRoomVideo, storagePathFromPublicUrl, MAX_VIDEO_SECONDS } from "@/lib/media";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
@@ -20,12 +21,13 @@ type Room = {
   amenities: string[];
   featured_image: string | null;
   gallery_images: string[];
+  videos: string[];
   is_available: boolean;
 };
 
 const empty: Partial<Room> = {
   room_name: "", description: "", price_per_night: 0, capacity: 2,
-  room_type: "Standard", amenities: [], featured_image: "", gallery_images: [], is_available: true,
+  room_type: "Standard", amenities: [], featured_image: "", gallery_images: [], videos: [], is_available: true,
 };
 
 const Rooms = () => {
