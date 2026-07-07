@@ -45,6 +45,7 @@ type RoomLike = {
   price_per_night?: number;
   featured_image?: string | null;
   gallery_images?: string[] | null;
+  videos?: string[] | null;
   capacity?: number;
   amenities?: string[];
 };
@@ -62,6 +63,7 @@ const RoomDetailModal = ({ open, onOpenChange, room, onBook }: RoomDetailModalPr
   const features = presetFeatures[room.room_name] ?? [];
   const amenityLabels = room.amenities ?? [];
   const gallery = (room.gallery_images ?? []).filter(Boolean);
+  const videos = (room.videos ?? []).filter(Boolean);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -103,6 +105,19 @@ const RoomDetailModal = ({ open, onOpenChange, room, onBook }: RoomDetailModalPr
                 <img key={i} src={g} alt={`${room.room_name} photo ${i + 1}`} loading="lazy"
                   className="aspect-square w-full rounded-lg object-cover border border-border/60" />
               ))}
+            </div>
+          )}
+
+          {/* Videos — controls only, no autoplay */}
+          {videos.length > 0 && (
+            <div className="space-y-3">
+              <h3 className="font-display text-lg font-semibold text-foreground">Video Tour</h3>
+              <div className="grid gap-3 sm:grid-cols-2">
+                {videos.map((v, i) => (
+                  <video key={i} src={v} controls playsInline preload="metadata" autoPlay={false}
+                    className="w-full aspect-video rounded-lg border border-border/60 bg-black" />
+                ))}
+              </div>
             </div>
           )}
 
