@@ -15,6 +15,7 @@ type Room = {
   is_available: boolean;
   amenities: string[];
   gallery_images: string[];
+  videos: string[];
 };
 
 const RoomsSection = () => {
@@ -26,7 +27,7 @@ const RoomsSection = () => {
     const load = async () => {
       const { data } = await supabase
         .from("rooms")
-        .select("id, room_name, description, price_per_night, capacity, featured_image, is_available, amenities, gallery_images")
+        .select("id, room_name, description, price_per_night, capacity, featured_image, is_available, amenities, gallery_images, videos")
         .eq("is_available", true)
         .order("price_per_night", { ascending: true });
       setRooms((data ?? []) as Room[]);
