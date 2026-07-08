@@ -211,7 +211,7 @@ const Rooms = () => {
                 <div className="flex items-start justify-between gap-2">
                   <div>
                     <h3 className="font-display font-semibold">{r.room_name}</h3>
-                    <p className="text-xs text-muted-foreground">{r.room_type} · {r.capacity} guests</p>
+                    <p className="text-xs text-muted-foreground">{r.room_type} · {r.capacity} guests · Order #{r.display_order}</p>
                   </div>
                   <p className="text-gold font-semibold">GHS {Number(r.price_per_night).toLocaleString()}</p>
                 </div>
