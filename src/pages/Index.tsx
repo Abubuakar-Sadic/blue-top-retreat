@@ -21,9 +21,9 @@ const Index = () => (
     <Suspense fallback={null}>
       <WhatsAppButton />
       <RoomsSection />
+      <UpcomingEvents />
       <EventsSection />
       <GallerySection />
-      <UpcomingEvents />
       <WhyChooseUs />
       <TestimonialsSection />
       <BookingSection />
