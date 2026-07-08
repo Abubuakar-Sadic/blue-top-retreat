@@ -146,3 +146,57 @@ export function storagePathFromPublicUrl(url: string, bucket: string): string | 
   if (idx === -1) return null;
   return decodeURIComponent(url.slice(idx + marker.length).split("?")[0]);
 }
+
+/**
+ * Upload a file to a Supabase Storage bucket with real byte-level progress.
+ *
+ * supabase-js `storage.upload()` does not expose progress, so we POST directly
+ * to the Storage REST endpoint via XHR (the same call the SDK makes) and report
+ * `onProgress(0..100)`. Returns the object path on success; throws on failure.
+ */
+export async function uploadToBucketWithProgress(
+  file: Blob,
+  bucket: string,
+  path: string,
+  accessToken: string,
+  onProgress?: (pct: number) => void,
+): Promise<string> {
+  const base = import.meta.env.VITE_SUPABASE_URL as string | undefined;
+  const apikey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string | undefined;
+  if (!base || !apikey) throw new Error("Storage is not configured. Please try again later.");
+
+  const endpoint = `${base}/storage/v1/object/${bucket}/${encodeURIComponent(path)}`;
+  return new Promise<string>((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open("POST", endpoint, true);
+    xhr.setRequestHeader("Authorization", `Bearer ${accessToken}`);
+    xhr.setRequestHeader("apikey", apikey);
+    xhr.setRequestHeader("x-upsert", "false");
+    if (file instanceof File && file.type) xhr.setRequestHeader("Content-Type", file.type);
+
+    xhr.upload.onprogress = (e) => {
+      if (e.lengthComputable && onProgress) {
+        onProgress(Math.min(99, Math.round((e.loaded / e.total) * 100)));
+      }
+    };
+    xhr.onload = () => {
+      if (xhr.status >= 200 && xhr.status < 300) {
+        onProgress?.(100);
+        resolve(path);
+      } else {
+        let msg = `Upload failed (${xhr.status}).`;
+        try {
+          const body = JSON.parse(xhr.responseText);
+          if (body?.message) msg = `Upload failed: ${body.message}`;
+        } catch { /* keep default */ }
+        logError(`upload "${path}" to ${bucket} [${xhr.status}]`, xhr.responseText);
+        reject(new Error(msg));
+      }
+    };
+    xhr.onerror = () => {
+      logError(`upload "${path}" to ${bucket}`, "network error");
+      reject(new Error("Upload failed due to a network error. Please check your connection and try again."));
+    };
+    xhr.send(file);
+  });
+}
