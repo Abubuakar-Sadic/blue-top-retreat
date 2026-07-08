@@ -1,8 +1,17 @@
 import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Plus, Pencil, Trash2, Loader2, Upload, X, Image as ImageIcon, Film } from "lucide-react";
-import { convertImageToWebP, validateRoomVideo, storagePathFromPublicUrl, MAX_VIDEO_SECONDS } from "@/lib/media";
+import { Plus, Pencil, Trash2, Loader2, Upload, X, Image as ImageIcon, Film, GripVertical, CheckCircle2, AlertCircle } from "lucide-react";
+import { convertImageToWebP, validateRoomVideo, storagePathFromPublicUrl, uploadToBucketWithProgress, MAX_VIDEO_SECONDS } from "@/lib/media";
+import { Progress } from "@/components/ui/progress";
+import {
+  DndContext, closestCenter, PointerSensor, TouchSensor, KeyboardSensor,
+  useSensor, useSensors, type DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  SortableContext, arrayMove, rectSortingStrategy, useSortable, sortableKeyboardCoordinates,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
@@ -10,6 +19,8 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+
+type UploadTask = { id: string; name: string; phase: "converting" | "uploading" | "done" | "error"; pct: number };
 
 type Room = {
   id: string;
@@ -41,9 +52,28 @@ const Rooms = () => {
   const [uploading, setUploading] = useState(false);
   const [mediaDel, setMediaDel] = useState<{ kind: "featured" | "gallery" | "video"; url: string } | null>(null);
   const [deletingMedia, setDeletingMedia] = useState(false);
+  const [uploads, setUploads] = useState<UploadTask[]>([]);
+  const [savingOrder, setSavingOrder] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
   const galleryRef = useRef<HTMLInputElement>(null);
   const videoRef = useRef<HTMLInputElement>(null);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 180, tolerance: 8 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+  );
+
+  // ---- Upload progress helpers -------------------------------------------
+  const startTask = (name: string): string => {
+    const id = `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+    setUploads((u) => [...u, { id, name, phase: "converting", pct: 0 }]);
+    return id;
+  };
+  const patchTask = (id: string, patch: Partial<UploadTask>) =>
+    setUploads((u) => u.map((t) => (t.id === id ? { ...t, ...patch } : t)));
+  const clearTask = (id: string, delay = 1500) =>
+    setTimeout(() => setUploads((u) => u.filter((t) => t.id !== id)), delay);
 
   const load = async () => {
     setLoading(true);
@@ -61,22 +91,38 @@ const Rooms = () => {
   const openNew = () => { setEditing({ ...empty }); setOpen(true); };
   const openEdit = (r: Room) => { setEditing({ ...r }); setOpen(true); };
 
-  const uploadFile = async (file: File, ext: string): Promise<string | null> => {
+  // Upload a processed file to the "rooms" bucket, reporting progress to a task.
+  const uploadFile = async (file: Blob, ext: string, taskId?: string): Promise<string | null> => {
     const path = `room-${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
-    const { error } = await supabase.storage.from("rooms").upload(path, file, { upsert: false });
-    if (error) { toast.error(`Upload failed: ${error.message}`); return null; }
-    const { data } = supabase.storage.from("rooms").getPublicUrl(path);
-    return data.publicUrl;
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session?.access_token) { toast.error("Your session expired. Please sign in again."); return null; }
+    try {
+      if (taskId) patchTask(taskId, { phase: "uploading", pct: 0 });
+      await uploadToBucketWithProgress(file, "rooms", path, session.access_token, (pct) => {
+        if (taskId) patchTask(taskId, { pct });
+      });
+      const { data } = supabase.storage.from("rooms").getPublicUrl(path);
+      return data.publicUrl;
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Upload failed.";
+      if (taskId) patchTask(taskId, { phase: "error" });
+      toast.error(msg);
+      return null;
+    }
   };
 
   const handleFeatured = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]; e.target.value = ""; if (!file) return;
     setUploading(true);
+    const task = startTask(file.name);
     try {
       const webp = await convertImageToWebP(file);
-      const url = await uploadFile(webp, "webp");
-      if (url) setEditing((p) => ({ ...p!, featured_image: url }));
+      const url = await uploadFile(webp, "webp", task);
+      if (url) { setEditing((p) => ({ ...p!, featured_image: url })); patchTask(task, { phase: "done", pct: 100 }); clearTask(task); }
+      else clearTask(task, 4000);
     } catch (err) {
+      patchTask(task, { phase: "error" });
+      clearTask(task, 4000);
       toast.error(err instanceof Error ? err.message : "Image upload failed.");
     } finally { setUploading(false); }
   };
@@ -85,11 +131,15 @@ const Rooms = () => {
     setUploading(true);
     const urls: string[] = [];
     for (const f of files) {
+      const task = startTask(f.name);
       try {
         const webp = await convertImageToWebP(f);
-        const u = await uploadFile(webp, "webp");
-        if (u) urls.push(u);
+        const u = await uploadFile(webp, "webp", task);
+        if (u) { urls.push(u); patchTask(task, { phase: "done", pct: 100 }); clearTask(task); }
+        else clearTask(task, 4000);
       } catch (err) {
+        patchTask(task, { phase: "error" });
+        clearTask(task, 4000);
         toast.error(err instanceof Error ? err.message : `Could not process "${f.name}".`);
       }
     }
@@ -99,13 +149,16 @@ const Rooms = () => {
   const handleVideo = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]; e.target.value = ""; if (!file) return;
     setUploading(true);
+    const task = startTask(file.name);
     try {
       const valid = await validateRoomVideo(file);
-      const url = await uploadFile(valid, "mp4");
-      if (url) setEditing((p) => ({ ...p!, videos: [...(p?.videos ?? []), url] }));
-      else return;
+      const url = await uploadFile(valid, "mp4", task);
+      if (url) { setEditing((p) => ({ ...p!, videos: [...(p?.videos ?? []), url] })); patchTask(task, { phase: "done", pct: 100 }); clearTask(task); }
+      else { clearTask(task, 4000); return; }
       toast.success("Video uploaded.");
     } catch (err) {
+      patchTask(task, { phase: "error" });
+      clearTask(task, 4000);
       toast.error(err instanceof Error ? err.message : "Video processing failed.");
     } finally { setUploading(false); }
   };
@@ -179,6 +232,35 @@ const Rooms = () => {
     load();
   };
 
+  // Persist a new manual order after drag-and-drop. Reassigns display_order to
+  // match the visible sequence (1..n) and writes every changed row.
+  const handleDragEnd = async (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    const oldIndex = rooms.findIndex((r) => r.id === active.id);
+    const newIndex = rooms.findIndex((r) => r.id === over.id);
+    if (oldIndex === -1 || newIndex === -1) return;
+
+    const prev = rooms;
+    const reordered = arrayMove(rooms, oldIndex, newIndex).map((r, i) => ({ ...r, display_order: i + 1 }));
+    setRooms(reordered); // optimistic
+    setSavingOrder(true);
+    try {
+      const changed = reordered.filter((r) => r.display_order !== prev.find((p) => p.id === r.id)?.display_order);
+      const results = await Promise.all(
+        changed.map((r) => supabase.from("rooms").update({ display_order: r.display_order }).eq("id", r.id)),
+      );
+      const failed = results.find((res) => res.error);
+      if (failed?.error) throw new Error(failed.error.message);
+      toast.success("Room order saved.");
+    } catch (err) {
+      setRooms(prev); // revert
+      toast.error(err instanceof Error ? `Could not save order: ${err.message}` : "Could not save room order.");
+    } finally {
+      setSavingOrder(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-end justify-between gap-3">
@@ -194,42 +276,27 @@ const Rooms = () => {
       ) : rooms.length === 0 ? (
         <div className="bg-card rounded-xl border border-dashed p-16 text-center text-muted-foreground">No rooms yet — add your first room.</div>
       ) : (
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
-          {rooms.map((r) => (
-            <div key={r.id} className="bg-card rounded-xl border border-border/60 shadow-sm overflow-hidden group">
-              <div className="aspect-video bg-muted relative overflow-hidden">
-                {r.featured_image ? (
-                  <img src={r.featured_image} alt={r.room_name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center"><ImageIcon className="w-10 h-10 text-muted-foreground/40" /></div>
-                )}
-                <span className={`absolute top-3 right-3 px-2 py-0.5 rounded-full text-xs font-medium border ${r.is_available ? "bg-emerald-500/90 text-white border-emerald-600" : "bg-rose-500/90 text-white border-rose-600"}`}>
-                  {r.is_available ? "Available" : "Unavailable"}
-                </span>
+        <>
+          <p className="text-xs text-muted-foreground flex items-center gap-1.5">
+            <GripVertical className="w-3.5 h-3.5" /> Drag rooms by the handle to reorder them — the new order is saved automatically and shown on the website.
+            {savingOrder && <Loader2 className="w-3.5 h-3.5 animate-spin text-gold" />}
+          </p>
+          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+            <SortableContext items={rooms.map((r) => r.id)} strategy={rectSortingStrategy}>
+              <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
+                {rooms.map((r) => (
+                  <SortableRoomCard
+                    key={r.id}
+                    room={r}
+                    onToggle={() => toggleAvailable(r)}
+                    onEdit={() => openEdit(r)}
+                    onDelete={() => setConfirmDel(r)}
+                  />
+                ))}
               </div>
-              <div className="p-4">
-                <div className="flex items-start justify-between gap-2">
-                  <div>
-                    <h3 className="font-display font-semibold">{r.room_name}</h3>
-                    <p className="text-xs text-muted-foreground">{r.room_type} · {r.capacity} guests · Order #{r.display_order}</p>
-                  </div>
-                  <p className="text-gold font-semibold">GHS {Number(r.price_per_night).toLocaleString()}</p>
-                </div>
-                <p className="text-sm text-muted-foreground mt-2 line-clamp-2">{r.description}</p>
-                <div className="flex items-center justify-between gap-2 mt-4 pt-3 border-t border-border/50">
-                  <label className="flex items-center gap-1.5 text-xs cursor-pointer">
-                    <input type="checkbox" checked={r.is_available} onChange={() => toggleAvailable(r)} className="accent-[hsl(var(--gold))]" />
-                    Available
-                  </label>
-                  <div className="flex gap-1">
-                    <button onClick={() => openEdit(r)} className="p-1.5 rounded-md hover:bg-muted" title="Edit"><Pencil className="w-4 h-4" /></button>
-                    <button onClick={() => setConfirmDel(r)} className="p-1.5 rounded-md hover:bg-destructive/10 text-destructive" title="Delete"><Trash2 className="w-4 h-4" /></button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
+            </SortableContext>
+          </DndContext>
+        </>
       )}
 
       <Dialog open={open} onOpenChange={setOpen}>
@@ -314,6 +381,33 @@ const Rooms = () => {
                 <input type="checkbox" checked={editing.is_available ?? true} onChange={(e) => setEditing({ ...editing, is_available: e.target.checked })} className="accent-[hsl(var(--gold))]" />
                 Available for booking
               </label>
+              {uploads.length > 0 && (
+                <div className="space-y-2 rounded-lg border border-border/60 bg-muted/40 p-3">
+                  <p className="text-xs font-medium text-muted-foreground">Media processing</p>
+                  {uploads.map((t) => (
+                    <div key={t.id} className="space-y-1">
+                      <div className="flex items-center justify-between gap-2 text-xs">
+                        <span className="flex items-center gap-1.5 truncate">
+                          {t.phase === "done" ? <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+                            : t.phase === "error" ? <AlertCircle className="w-3.5 h-3.5 text-destructive shrink-0" />
+                            : <Loader2 className="w-3.5 h-3.5 animate-spin text-gold shrink-0" />}
+                          <span className="truncate">{t.name}</span>
+                        </span>
+                        <span className="text-muted-foreground shrink-0">
+                          {t.phase === "converting" ? "Optimizing…"
+                            : t.phase === "uploading" ? `Uploading ${t.pct}%`
+                            : t.phase === "done" ? "Done"
+                            : "Failed"}
+                        </span>
+                      </div>
+                      <Progress
+                        value={t.phase === "done" ? 100 : t.phase === "error" ? 100 : t.phase === "converting" ? 8 : t.pct}
+                        className={`h-1.5 ${t.phase === "error" ? "[&>div]:bg-destructive" : ""}`}
+                      />
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           )}
           <DialogFooter>
@@ -359,5 +453,65 @@ const Rooms = () => {
 const Field = ({ label, children }: { label: string; children: React.ReactNode }) => (
   <div><label className="block text-sm font-medium mb-1.5">{label}</label>{children}</div>
 );
+
+const SortableRoomCard = ({
+  room: r, onToggle, onEdit, onDelete,
+}: {
+  room: Room;
+  onToggle: () => void;
+  onEdit: () => void;
+  onDelete: () => void;
+}) => {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: r.id });
+  const style = { transform: CSS.Transform.toString(transform), transition, zIndex: isDragging ? 20 : undefined };
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className={`bg-card rounded-xl border border-border/60 shadow-sm overflow-hidden group ${isDragging ? "ring-2 ring-gold shadow-lg opacity-90" : ""}`}
+    >
+      <div className="aspect-video bg-muted relative overflow-hidden">
+        {r.featured_image ? (
+          <img src={r.featured_image} alt={r.room_name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center"><ImageIcon className="w-10 h-10 text-muted-foreground/40" /></div>
+        )}
+        <button
+          type="button"
+          {...attributes}
+          {...listeners}
+          title="Drag to reorder"
+          aria-label={`Drag to reorder ${r.room_name}`}
+          className="absolute top-3 left-3 p-1.5 rounded-md bg-background/85 border border-border/60 text-foreground/80 hover:text-foreground cursor-grab active:cursor-grabbing touch-none"
+        >
+          <GripVertical className="w-4 h-4" />
+        </button>
+        <span className={`absolute top-3 right-3 px-2 py-0.5 rounded-full text-xs font-medium border ${r.is_available ? "bg-emerald-500/90 text-white border-emerald-600" : "bg-rose-500/90 text-white border-rose-600"}`}>
+          {r.is_available ? "Available" : "Unavailable"}
+        </span>
+      </div>
+      <div className="p-4">
+        <div className="flex items-start justify-between gap-2">
+          <div>
+            <h3 className="font-display font-semibold">{r.room_name}</h3>
+            <p className="text-xs text-muted-foreground">{r.room_type} · {r.capacity} guests · Order #{r.display_order}</p>
+          </div>
+          <p className="text-gold font-semibold">GHS {Number(r.price_per_night).toLocaleString()}</p>
+        </div>
+        <p className="text-sm text-muted-foreground mt-2 line-clamp-2">{r.description}</p>
+        <div className="flex items-center justify-between gap-2 mt-4 pt-3 border-t border-border/50">
+          <label className="flex items-center gap-1.5 text-xs cursor-pointer">
+            <input type="checkbox" checked={r.is_available} onChange={onToggle} className="accent-[hsl(var(--gold))]" />
+            Available
+          </label>
+          <div className="flex gap-1">
+            <button onClick={onEdit} className="p-1.5 rounded-md hover:bg-muted" title="Edit"><Pencil className="w-4 h-4" /></button>
+            <button onClick={onDelete} className="p-1.5 rounded-md hover:bg-destructive/10 text-destructive" title="Delete"><Trash2 className="w-4 h-4" /></button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 export default Rooms;
