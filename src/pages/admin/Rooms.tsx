@@ -91,22 +91,38 @@ const Rooms = () => {
   const openNew = () => { setEditing({ ...empty }); setOpen(true); };
   const openEdit = (r: Room) => { setEditing({ ...r }); setOpen(true); };
 
-  const uploadFile = async (file: File, ext: string): Promise<string | null> => {
+  // Upload a processed file to the "rooms" bucket, reporting progress to a task.
+  const uploadFile = async (file: Blob, ext: string, taskId?: string): Promise<string | null> => {
     const path = `room-${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
-    const { error } = await supabase.storage.from("rooms").upload(path, file, { upsert: false });
-    if (error) { toast.error(`Upload failed: ${error.message}`); return null; }
-    const { data } = supabase.storage.from("rooms").getPublicUrl(path);
-    return data.publicUrl;
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session?.access_token) { toast.error("Your session expired. Please sign in again."); return null; }
+    try {
+      if (taskId) patchTask(taskId, { phase: "uploading", pct: 0 });
+      await uploadToBucketWithProgress(file, "rooms", path, session.access_token, (pct) => {
+        if (taskId) patchTask(taskId, { pct });
+      });
+      const { data } = supabase.storage.from("rooms").getPublicUrl(path);
+      return data.publicUrl;
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Upload failed.";
+      if (taskId) patchTask(taskId, { phase: "error" });
+      toast.error(msg);
+      return null;
+    }
   };
 
   const handleFeatured = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]; e.target.value = ""; if (!file) return;
     setUploading(true);
+    const task = startTask(file.name);
     try {
       const webp = await convertImageToWebP(file);
-      const url = await uploadFile(webp, "webp");
-      if (url) setEditing((p) => ({ ...p!, featured_image: url }));
+      const url = await uploadFile(webp, "webp", task);
+      if (url) { setEditing((p) => ({ ...p!, featured_image: url })); patchTask(task, { phase: "done", pct: 100 }); clearTask(task); }
+      else clearTask(task, 4000);
     } catch (err) {
+      patchTask(task, { phase: "error" });
+      clearTask(task, 4000);
       toast.error(err instanceof Error ? err.message : "Image upload failed.");
     } finally { setUploading(false); }
   };
@@ -115,11 +131,15 @@ const Rooms = () => {
     setUploading(true);
     const urls: string[] = [];
     for (const f of files) {
+      const task = startTask(f.name);
       try {
         const webp = await convertImageToWebP(f);
-        const u = await uploadFile(webp, "webp");
-        if (u) urls.push(u);
+        const u = await uploadFile(webp, "webp", task);
+        if (u) { urls.push(u); patchTask(task, { phase: "done", pct: 100 }); clearTask(task); }
+        else clearTask(task, 4000);
       } catch (err) {
+        patchTask(task, { phase: "error" });
+        clearTask(task, 4000);
         toast.error(err instanceof Error ? err.message : `Could not process "${f.name}".`);
       }
     }
@@ -129,13 +149,16 @@ const Rooms = () => {
   const handleVideo = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]; e.target.value = ""; if (!file) return;
     setUploading(true);
+    const task = startTask(file.name);
     try {
       const valid = await validateRoomVideo(file);
-      const url = await uploadFile(valid, "mp4");
-      if (url) setEditing((p) => ({ ...p!, videos: [...(p?.videos ?? []), url] }));
-      else return;
+      const url = await uploadFile(valid, "mp4", task);
+      if (url) { setEditing((p) => ({ ...p!, videos: [...(p?.videos ?? []), url] })); patchTask(task, { phase: "done", pct: 100 }); clearTask(task); }
+      else { clearTask(task, 4000); return; }
       toast.success("Video uploaded.");
     } catch (err) {
+      patchTask(task, { phase: "error" });
+      clearTask(task, 4000);
       toast.error(err instanceof Error ? err.message : "Video processing failed.");
     } finally { setUploading(false); }
   };
