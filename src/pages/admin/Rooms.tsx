@@ -155,6 +155,7 @@ const Rooms = () => {
       gallery_images: editing.gallery_images ?? [],
       videos: editing.videos ?? [],
       is_available: editing.is_available ?? true,
+      display_order: Number(editing.display_order) || 0,
       slug: editing.room_name?.toLowerCase().replace(/\s+/g, "-"),
     };
     const { error } = editing.id
