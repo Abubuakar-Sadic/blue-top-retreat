@@ -23,11 +23,12 @@ type Room = {
   gallery_images: string[];
   videos: string[];
   is_available: boolean;
+  display_order: number;
 };
 
 const empty: Partial<Room> = {
   room_name: "", description: "", price_per_night: 0, capacity: 2,
-  room_type: "Standard", amenities: [], featured_image: "", gallery_images: [], videos: [], is_available: true,
+  room_type: "Standard", amenities: [], featured_image: "", gallery_images: [], videos: [], is_available: true, display_order: 0,
 };
 
 const Rooms = () => {
@@ -46,7 +47,12 @@ const Rooms = () => {
 
   const load = async () => {
     setLoading(true);
-    const { data } = await supabase.from("rooms").select("*").order("created_at", { ascending: false });
+    const { data, error } = await supabase
+      .from("rooms")
+      .select("*")
+      .order("display_order", { ascending: true })
+      .order("created_at", { ascending: false });
+    if (error) toast.error(`Failed to load rooms: ${error.message}`);
     setRooms((data ?? []) as Room[]);
     setLoading(false);
   };
@@ -149,6 +155,7 @@ const Rooms = () => {
       gallery_images: editing.gallery_images ?? [],
       videos: editing.videos ?? [],
       is_available: editing.is_available ?? true,
+      display_order: Number(editing.display_order) || 0,
       slug: editing.room_name?.toLowerCase().replace(/\s+/g, "-"),
     };
     const { error } = editing.id
@@ -204,7 +211,7 @@ const Rooms = () => {
                 <div className="flex items-start justify-between gap-2">
                   <div>
                     <h3 className="font-display font-semibold">{r.room_name}</h3>
-                    <p className="text-xs text-muted-foreground">{r.room_type} · {r.capacity} guests</p>
+                    <p className="text-xs text-muted-foreground">{r.room_type} · {r.capacity} guests · Order #{r.display_order}</p>
                   </div>
                   <p className="text-gold font-semibold">GHS {Number(r.price_per_night).toLocaleString()}</p>
                 </div>
@@ -235,6 +242,7 @@ const Rooms = () => {
                 <Field label="Room Type"><input className="input" value={editing.room_type ?? ""} onChange={(e) => setEditing({ ...editing, room_type: e.target.value })} placeholder="Standard / Deluxe / Suite" /></Field>
                 <Field label="Price per Night (GHS)"><input type="number" className="input" value={editing.price_per_night ?? 0} onChange={(e) => setEditing({ ...editing, price_per_night: Number(e.target.value) })} /></Field>
                 <Field label="Capacity"><input type="number" className="input" value={editing.capacity ?? 2} onChange={(e) => setEditing({ ...editing, capacity: Number(e.target.value) })} /></Field>
+                <Field label="Display Order"><input type="number" min={0} className="input" value={editing.display_order ?? 0} onChange={(e) => setEditing({ ...editing, display_order: Number(e.target.value) })} /><p className="text-xs text-muted-foreground mt-1">Lower numbers appear first on the website.</p></Field>
               </div>
               <Field label="Description">
                 <textarea rows={3} className="input" value={editing.description ?? ""} onChange={(e) => setEditing({ ...editing, description: e.target.value })} />

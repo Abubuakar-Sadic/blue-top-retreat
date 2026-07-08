@@ -16,6 +16,7 @@ type Room = {
   amenities: string[];
   gallery_images: string[];
   videos: string[];
+  display_order: number;
 };
 
 const RoomsSection = () => {
@@ -25,11 +26,16 @@ const RoomsSection = () => {
 
   useEffect(() => {
     const load = async () => {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from("rooms")
-        .select("id, room_name, description, price_per_night, capacity, featured_image, is_available, amenities, gallery_images, videos")
+        .select("id, room_name, description, price_per_night, capacity, featured_image, is_available, amenities, gallery_images, videos, display_order")
         .eq("is_available", true)
+        .order("display_order", { ascending: true })
         .order("price_per_night", { ascending: true });
+      if (error) {
+        console.error("Failed to load rooms:", error);
+        return;
+      }
       setRooms((data ?? []) as Room[]);
     };
     load();

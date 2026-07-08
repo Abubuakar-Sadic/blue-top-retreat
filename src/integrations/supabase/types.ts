@@ -338,6 +338,7 @@ export type Database = {
           capacity: number
           created_at: string
           description: string | null
+          display_order: number
           featured_image: string | null
           gallery_images: string[]
           id: string
@@ -354,6 +355,7 @@ export type Database = {
           capacity?: number
           created_at?: string
           description?: string | null
+          display_order?: number
           featured_image?: string | null
           gallery_images?: string[]
           id?: string
@@ -370,6 +372,7 @@ export type Database = {
           capacity?: number
           created_at?: string
           description?: string | null
+          display_order?: number
           featured_image?: string | null
           gallery_images?: string[]
           id?: string
