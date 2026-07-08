@@ -381,6 +381,33 @@ const Rooms = () => {
                 <input type="checkbox" checked={editing.is_available ?? true} onChange={(e) => setEditing({ ...editing, is_available: e.target.checked })} className="accent-[hsl(var(--gold))]" />
                 Available for booking
               </label>
+              {uploads.length > 0 && (
+                <div className="space-y-2 rounded-lg border border-border/60 bg-muted/40 p-3">
+                  <p className="text-xs font-medium text-muted-foreground">Media processing</p>
+                  {uploads.map((t) => (
+                    <div key={t.id} className="space-y-1">
+                      <div className="flex items-center justify-between gap-2 text-xs">
+                        <span className="flex items-center gap-1.5 truncate">
+                          {t.phase === "done" ? <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+                            : t.phase === "error" ? <AlertCircle className="w-3.5 h-3.5 text-destructive shrink-0" />
+                            : <Loader2 className="w-3.5 h-3.5 animate-spin text-gold shrink-0" />}
+                          <span className="truncate">{t.name}</span>
+                        </span>
+                        <span className="text-muted-foreground shrink-0">
+                          {t.phase === "converting" ? "Optimizing…"
+                            : t.phase === "uploading" ? `Uploading ${t.pct}%`
+                            : t.phase === "done" ? "Done"
+                            : "Failed"}
+                        </span>
+                      </div>
+                      <Progress
+                        value={t.phase === "done" ? 100 : t.phase === "error" ? 100 : t.phase === "converting" ? 8 : t.pct}
+                        className={`h-1.5 ${t.phase === "error" ? "[&>div]:bg-destructive" : ""}`}
+                      />
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           )}
           <DialogFooter>
