@@ -41,5 +41,5 @@ for (const c of checks) {
   }
 }
 
-console.log(`\n${failures === 0 ? "All assets reachable ✔" : `${failures} asset(s) failed �’`}  — ${base}`);
+console.log(`\n${failures === 0 ? "All assets reachable [OK]" : `${failures} asset(s) failed [FAIL]`}  — ${base}`);
 process.exit(failures === 0 ? 0 : 1);
