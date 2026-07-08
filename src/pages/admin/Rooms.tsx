@@ -1,8 +1,17 @@
 import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Plus, Pencil, Trash2, Loader2, Upload, X, Image as ImageIcon, Film } from "lucide-react";
-import { convertImageToWebP, validateRoomVideo, storagePathFromPublicUrl, MAX_VIDEO_SECONDS } from "@/lib/media";
+import { Plus, Pencil, Trash2, Loader2, Upload, X, Image as ImageIcon, Film, GripVertical, CheckCircle2, AlertCircle } from "lucide-react";
+import { convertImageToWebP, validateRoomVideo, storagePathFromPublicUrl, uploadToBucketWithProgress, MAX_VIDEO_SECONDS } from "@/lib/media";
+import { Progress } from "@/components/ui/progress";
+import {
+  DndContext, closestCenter, PointerSensor, TouchSensor, KeyboardSensor,
+  useSensor, useSensors, type DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  SortableContext, arrayMove, rectSortingStrategy, useSortable, sortableKeyboardCoordinates,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
@@ -10,6 +19,8 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+
+type UploadTask = { id: string; name: string; phase: "converting" | "uploading" | "done" | "error"; pct: number };
 
 type Room = {
   id: string;
