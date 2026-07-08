@@ -242,6 +242,7 @@ const Rooms = () => {
                 <Field label="Room Type"><input className="input" value={editing.room_type ?? ""} onChange={(e) => setEditing({ ...editing, room_type: e.target.value })} placeholder="Standard / Deluxe / Suite" /></Field>
                 <Field label="Price per Night (GHS)"><input type="number" className="input" value={editing.price_per_night ?? 0} onChange={(e) => setEditing({ ...editing, price_per_night: Number(e.target.value) })} /></Field>
                 <Field label="Capacity"><input type="number" className="input" value={editing.capacity ?? 2} onChange={(e) => setEditing({ ...editing, capacity: Number(e.target.value) })} /></Field>
+                <Field label="Display Order"><input type="number" min={0} className="input" value={editing.display_order ?? 0} onChange={(e) => setEditing({ ...editing, display_order: Number(e.target.value) })} /><p className="text-xs text-muted-foreground mt-1">Lower numbers appear first on the website.</p></Field>
               </div>
               <Field label="Description">
                 <textarea rows={3} className="input" value={editing.description ?? ""} onChange={(e) => setEditing({ ...editing, description: e.target.value })} />
