@@ -246,7 +246,7 @@ const Rooms = () => {
     setRooms(reordered); // optimistic
     setSavingOrder(true);
     try {
-      const changed = reordered.filter((r, i) => r.display_order !== prev.find((p) => p.id === r.id)?.display_order);
+      const changed = reordered.filter((r) => r.display_order !== prev.find((p) => p.id === r.id)?.display_order);
       const results = await Promise.all(
         changed.map((r) => supabase.from("rooms").update({ display_order: r.display_order }).eq("id", r.id)),
       );
