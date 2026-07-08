@@ -23,11 +23,12 @@ type Room = {
   gallery_images: string[];
   videos: string[];
   is_available: boolean;
+  display_order: number;
 };
 
 const empty: Partial<Room> = {
   room_name: "", description: "", price_per_night: 0, capacity: 2,
-  room_type: "Standard", amenities: [], featured_image: "", gallery_images: [], videos: [], is_available: true,
+  room_type: "Standard", amenities: [], featured_image: "", gallery_images: [], videos: [], is_available: true, display_order: 0,
 };
 
 const Rooms = () => {
@@ -46,7 +47,12 @@ const Rooms = () => {
 
   const load = async () => {
     setLoading(true);
-    const { data } = await supabase.from("rooms").select("*").order("created_at", { ascending: false });
+    const { data, error } = await supabase
+      .from("rooms")
+      .select("*")
+      .order("display_order", { ascending: true })
+      .order("created_at", { ascending: false });
+    if (error) toast.error(`Failed to load rooms: ${error.message}`);
     setRooms((data ?? []) as Room[]);
     setLoading(false);
   };
