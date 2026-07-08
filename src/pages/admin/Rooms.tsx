@@ -52,9 +52,28 @@ const Rooms = () => {
   const [uploading, setUploading] = useState(false);
   const [mediaDel, setMediaDel] = useState<{ kind: "featured" | "gallery" | "video"; url: string } | null>(null);
   const [deletingMedia, setDeletingMedia] = useState(false);
+  const [uploads, setUploads] = useState<UploadTask[]>([]);
+  const [savingOrder, setSavingOrder] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
   const galleryRef = useRef<HTMLInputElement>(null);
   const videoRef = useRef<HTMLInputElement>(null);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 180, tolerance: 8 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+  );
+
+  // ---- Upload progress helpers -------------------------------------------
+  const startTask = (name: string): string => {
+    const id = `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+    setUploads((u) => [...u, { id, name, phase: "converting", pct: 0 }]);
+    return id;
+  };
+  const patchTask = (id: string, patch: Partial<UploadTask>) =>
+    setUploads((u) => u.map((t) => (t.id === id ? { ...t, ...patch } : t)));
+  const clearTask = (id: string, delay = 1500) =>
+    setTimeout(() => setUploads((u) => u.filter((t) => t.id !== id)), delay);
 
   const load = async () => {
     setLoading(true);
