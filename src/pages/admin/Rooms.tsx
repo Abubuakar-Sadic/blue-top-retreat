@@ -276,42 +276,27 @@ const Rooms = () => {
       ) : rooms.length === 0 ? (
         <div className="bg-card rounded-xl border border-dashed p-16 text-center text-muted-foreground">No rooms yet — add your first room.</div>
       ) : (
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
-          {rooms.map((r) => (
-            <div key={r.id} className="bg-card rounded-xl border border-border/60 shadow-sm overflow-hidden group">
-              <div className="aspect-video bg-muted relative overflow-hidden">
-                {r.featured_image ? (
-                  <img src={r.featured_image} alt={r.room_name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center"><ImageIcon className="w-10 h-10 text-muted-foreground/40" /></div>
-                )}
-                <span className={`absolute top-3 right-3 px-2 py-0.5 rounded-full text-xs font-medium border ${r.is_available ? "bg-emerald-500/90 text-white border-emerald-600" : "bg-rose-500/90 text-white border-rose-600"}`}>
-                  {r.is_available ? "Available" : "Unavailable"}
-                </span>
+        <>
+          <p className="text-xs text-muted-foreground flex items-center gap-1.5">
+            <GripVertical className="w-3.5 h-3.5" /> Drag rooms by the handle to reorder them — the new order is saved automatically and shown on the website.
+            {savingOrder && <Loader2 className="w-3.5 h-3.5 animate-spin text-gold" />}
+          </p>
+          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+            <SortableContext items={rooms.map((r) => r.id)} strategy={rectSortingStrategy}>
+              <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
+                {rooms.map((r) => (
+                  <SortableRoomCard
+                    key={r.id}
+                    room={r}
+                    onToggle={() => toggleAvailable(r)}
+                    onEdit={() => openEdit(r)}
+                    onDelete={() => setConfirmDel(r)}
+                  />
+                ))}
               </div>
-              <div className="p-4">
-                <div className="flex items-start justify-between gap-2">
-                  <div>
-                    <h3 className="font-display font-semibold">{r.room_name}</h3>
-                    <p className="text-xs text-muted-foreground">{r.room_type} · {r.capacity} guests · Order #{r.display_order}</p>
-                  </div>
-                  <p className="text-gold font-semibold">GHS {Number(r.price_per_night).toLocaleString()}</p>
-                </div>
-                <p className="text-sm text-muted-foreground mt-2 line-clamp-2">{r.description}</p>
-                <div className="flex items-center justify-between gap-2 mt-4 pt-3 border-t border-border/50">
-                  <label className="flex items-center gap-1.5 text-xs cursor-pointer">
-                    <input type="checkbox" checked={r.is_available} onChange={() => toggleAvailable(r)} className="accent-[hsl(var(--gold))]" />
-                    Available
-                  </label>
-                  <div className="flex gap-1">
-                    <button onClick={() => openEdit(r)} className="p-1.5 rounded-md hover:bg-muted" title="Edit"><Pencil className="w-4 h-4" /></button>
-                    <button onClick={() => setConfirmDel(r)} className="p-1.5 rounded-md hover:bg-destructive/10 text-destructive" title="Delete"><Trash2 className="w-4 h-4" /></button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
+            </SortableContext>
+          </DndContext>
+        </>
       )}
 
       <Dialog open={open} onOpenChange={setOpen}>
