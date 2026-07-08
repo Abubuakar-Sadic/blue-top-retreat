@@ -232,6 +232,35 @@ const Rooms = () => {
     load();
   };
 
+  // Persist a new manual order after drag-and-drop. Reassigns display_order to
+  // match the visible sequence (1..n) and writes every changed row.
+  const handleDragEnd = async (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    const oldIndex = rooms.findIndex((r) => r.id === active.id);
+    const newIndex = rooms.findIndex((r) => r.id === over.id);
+    if (oldIndex === -1 || newIndex === -1) return;
+
+    const prev = rooms;
+    const reordered = arrayMove(rooms, oldIndex, newIndex).map((r, i) => ({ ...r, display_order: i + 1 }));
+    setRooms(reordered); // optimistic
+    setSavingOrder(true);
+    try {
+      const changed = reordered.filter((r, i) => r.display_order !== prev.find((p) => p.id === r.id)?.display_order);
+      const results = await Promise.all(
+        changed.map((r) => supabase.from("rooms").update({ display_order: r.display_order }).eq("id", r.id)),
+      );
+      const failed = results.find((res) => res.error);
+      if (failed?.error) throw new Error(failed.error.message);
+      toast.success("Room order saved.");
+    } catch (err) {
+      setRooms(prev); // revert
+      toast.error(err instanceof Error ? `Could not save order: ${err.message}` : "Could not save room order.");
+    } finally {
+      setSavingOrder(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-end justify-between gap-3">
