@@ -1,5 +1,5 @@
 // Blue Top Villa WhatsApp number (international format, no +)
-export const VILLA_WHATSAPP = "233559171787";
+export const VILLA_WHATSAPP = "233598972801";
 
 /**
  * Build a wa.me link with a prefilled message and open it so the booking
