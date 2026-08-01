@@ -6,6 +6,9 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import Index from "./pages/Index.tsx";
 import NotFound from "./pages/NotFound.tsx";
 import Auth from "./pages/Auth.tsx";
+import Terms from "./pages/legal/Terms.tsx";
+import Privacy from "./pages/legal/Privacy.tsx";
+import Cancellation from "./pages/legal/Cancellation.tsx";
 import { AuthProvider } from "./hooks/useAuth.tsx";
 import ProtectedAdmin from "./components/admin/ProtectedAdmin.tsx";
 import RequireCap from "./components/admin/RequireRole.tsx";
@@ -34,6 +37,9 @@ const App = () => (
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/auth" element={<Auth />} />
+            <Route path="/terms" element={<Terms />} />
+            <Route path="/privacy-policy" element={<Privacy />} />
+            <Route path="/cancellation-policy" element={<Cancellation />} />
             <Route element={<ProtectedAdmin />}>
               <Route path="/admin" element={<AdminLayout />}>
                 <Route index element={<Overview />} />
