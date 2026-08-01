@@ -109,7 +109,13 @@ const UpcomingEvents = () => {
         <ReserveEventModal
           open={!!reserving}
           onOpenChange={(o) => !o && setReserving(null)}
-          event={reserving ? { id: reserving.id, title: reserving.title } : null}
+          event={reserving ? {
+            id: reserving.id,
+            title: reserving.title,
+            date: reserving.event_type === "recurring"
+              ? nextOccurrence(reserving)
+              : (reserving.event_at ? new Date(reserving.event_at) : null),
+          } : null}
         />
       </div>
     </section>

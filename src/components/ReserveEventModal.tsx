@@ -1,102 +1,114 @@
 import { useEffect, useState } from "react";
 import { z } from "zod";
 import { toast } from "sonner";
+import { format } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 import { sendBookingToWhatsApp } from "@/lib/whatsapp";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
 } from "@/components/ui/dialog";
-import { CheckCircle2, Loader2, MessageCircle } from "lucide-react";
+import { Loader2 } from "lucide-react";
+import { ConfirmationPanel, ConsentGate, Field, YesNo, inputCls } from "./reservation/FormKit";
 
 const schema = z.object({
-  name: z.string().trim().min(1, "Name is required").max(100),
-  phone: z.string().trim().min(7, "Valid phone required").max(20),
-  email: z.string().trim().email("Invalid email").max(255).optional().or(z.literal("")),
-  partySize: z.number().min(1).max(500),
+  name: z.string().trim().min(2, "Full name is required").max(100),
+  phone: z.string().trim().min(7, "A valid phone number is required").max(20),
+  email: z.string().trim().email("Enter a valid email address").max(255),
+  partySize: z.number().min(1, "Number of guests is required").max(500),
+  arrivalTime: z.string().min(1, "Preferred arrival time is required"),
+  notes: z.string().trim().max(1000).optional().or(z.literal("")),
 });
 
 type Props = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  event: { id?: string; title: string } | null;
+  /** `date` is auto-populated from the event's next occurrence. */
+  event: { id?: string; title: string; date?: Date | null } | null;
 };
 
-const inputCls =
-  "w-full px-4 py-2.5 rounded-lg border border-border bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-gold/50 focus:border-gold transition-all text-sm";
+const CELEBRATIONS = ["None", "Birthday", "Anniversary", "Graduation", "Engagement", "Promotion", "Other"];
+
+const emptyForm = {
+  name: "", phone: "", email: "", partySize: 2, arrivalTime: "",
+  vip: false, bottle: false, celebration: "None", notes: "",
+};
 
 const ReserveEventModal = ({ open, onOpenChange, event }: Props) => {
-  const [form, setForm] = useState({ name: "", phone: "", email: "", partySize: 1, notes: "" });
+  const [form, setForm] = useState({ ...emptyForm });
+  const [accurate, setAccurate] = useState(false);
+  const [agreed, setAgreed] = useState(false);
   const [busy, setBusy] = useState(false);
   const [code, setCode] = useState<string | null>(null);
+  const set = (patch: Partial<typeof emptyForm>) => setForm((f) => ({ ...f, ...patch }));
+
+  const eventDate = event?.date ?? null;
 
   useEffect(() => {
-    if (!open) { setCode(null); setForm({ name: "", phone: "", email: "", partySize: 1, notes: "" }); }
+    if (!open) {
+      setCode(null); setForm({ ...emptyForm }); setAccurate(false); setAgreed(false); setBusy(false);
+    }
   }, [open]);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!event) return;
+    if (!event || busy) return;
     const parsed = schema.safeParse(form);
     if (!parsed.success) { toast.error(parsed.error.issues[0].message); return; }
+    if (!accurate || !agreed) { toast.error("Please tick both confirmation boxes to continue"); return; }
+
     setBusy(true);
-    const { data, error } = await supabase.from("event_reservations").insert({
-      event_id: event.id ?? null,
-      event_title: event.title,
-      attendee_name: form.name,
-      attendee_phone: form.phone,
-      attendee_email: form.email || null,
-      party_size: form.partySize,
-      notes: form.notes || null,
-    }).select("id, reservation_code").single();
-    setBusy(false);
-    if (error) { toast.error(error.message); return; }
-    const resCode = data?.reservation_code ?? null;
-    setCode(resCode);
-    supabase.functions.invoke("send-booking-sms", {
-      body: { type: "event", id: data?.id },
-    }).catch(() => {});
-    sendBookingToWhatsApp([
-      "🎉 *New Event Attendance Booking — Blue Top Villa*",
-      resCode ? `Reservation code: ${resCode}` : "",
-      `Event: ${event.title}`,
-      `Name: ${form.name}`,
-      `Phone: ${form.phone}`,
-      form.email ? `Email: ${form.email}` : "",
-      `Party size: ${form.partySize}`,
-      form.notes ? `Notes: ${form.notes}` : "",
-    ]);
-    toast.success("Reservation confirmed!");
+    try {
+      const { data, error } = await supabase.from("event_reservations").insert({
+        event_id: event.id ?? null,
+        event_title: event.title,
+        event_date: eventDate ? format(eventDate, "yyyy-MM-dd") : null,
+        attendee_name: form.name,
+        attendee_phone: form.phone,
+        attendee_email: form.email,
+        party_size: form.partySize,
+        arrival_time: form.arrivalTime,
+        vip_table: form.vip,
+        bottle_reservation: form.bottle,
+        celebration_type: form.celebration === "None" ? null : form.celebration,
+        notes: form.notes || null,
+      }).select("id, reservation_code").single();
+      if (error) throw error;
+
+      const resCode = data?.reservation_code ?? null;
+      setCode(resCode);
+      supabase.functions.invoke("send-booking-sms", { body: { type: "event", id: data?.id } }).catch(() => {});
+      sendBookingToWhatsApp([
+        "🎉 *New Event Reservation — Blue Top Villa*",
+        resCode ? `Reference: ${resCode}` : "",
+        `Event: ${event.title}`,
+        eventDate ? `Event date: ${format(eventDate, "EEE d MMM yyyy")}` : "",
+        `Name: ${form.name}`,
+        `Phone: ${form.phone}`,
+        `Email: ${form.email}`,
+        `Guests: ${form.partySize}`,
+        `Arrival: ${form.arrivalTime}`,
+        `VIP table: ${form.vip ? "Yes" : "No"} · Bottle reservation: ${form.bottle ? "Yes" : "No"}`,
+        form.celebration !== "None" ? `Celebration: ${form.celebration}` : "",
+        form.notes ? `Special requests: ${form.notes}` : "",
+      ]);
+      toast.success("Reservation submitted successfully");
+    } catch (err: any) {
+      console.error("Event reservation failed", err);
+      toast.error(err?.message ?? "We couldn't submit your reservation. Please try again.");
+    } finally {
+      setBusy(false);
+    }
   };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-lg max-h-[90vh]">
         {code ? (
-          <div className="text-center py-6 space-y-4">
-            <CheckCircle2 className="w-14 h-14 text-emerald-500 mx-auto" />
-            <DialogHeader>
-              <DialogTitle className="font-display text-2xl text-center">Spot Reserved</DialogTitle>
-              <DialogDescription className="text-center">
-                Your reservation code has been sent to {form.phone}. Show this at the door.
-              </DialogDescription>
-            </DialogHeader>
-            <div className="bg-muted rounded-lg py-4">
-              <p className="text-xs uppercase tracking-wider text-muted-foreground mb-1">Reservation Code</p>
-              <p className="font-mono text-2xl font-bold text-gold">{code}</p>
-            </div>
-            <p className="text-sm text-muted-foreground">
-              Your booking details have been sent to Blue Top Villa on WhatsApp. If it didn't open, tap below.
-            </p>
-            <a
-              href={`https://wa.me/233559171787?text=${encodeURIComponent(`Event booking ${code ?? ""} — ${event?.title ?? ""} for ${form.name} (${form.phone})`)}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="w-full inline-flex items-center justify-center gap-2 rounded-lg bg-[#25D366] text-white py-2.5 font-medium hover:opacity-90 transition-opacity"
-            >
-              <MessageCircle className="w-4 h-4" /> Send via WhatsApp
-            </a>
-            <button onClick={() => onOpenChange(false)} className="btn-gold w-full">Done</button>
-          </div>
+          <ConfirmationPanel
+            reference={code}
+            whatsappText={`Event reservation ${code} — ${event?.title ?? ""} for ${form.name} (${form.phone})`}
+            onDone={() => onOpenChange(false)}
+          />
         ) : (
           <>
             <DialogHeader>
@@ -105,17 +117,57 @@ const ReserveEventModal = ({ open, onOpenChange, event }: Props) => {
             </DialogHeader>
             <form onSubmit={submit} className="space-y-3 mt-2">
               <div className="grid sm:grid-cols-2 gap-3">
-                <input className={inputCls} placeholder="Full name" required value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
-                <input className={inputCls} placeholder="Phone (e.g. 055 917 1787)" required value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
+                <Field label="Event">
+                  <input className={`${inputCls} bg-muted/50`} value={event?.title ?? ""} readOnly aria-readonly="true" />
+                </Field>
+                <Field label="Event date">
+                  <input className={`${inputCls} bg-muted/50`} readOnly aria-readonly="true"
+                    value={eventDate ? format(eventDate, "EEE d MMM yyyy") : "To be announced"} />
+                </Field>
               </div>
-              <input className={inputCls} type="email" placeholder="Email (optional)" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
-              <div>
-                <label className="block text-xs text-muted-foreground mb-1">Party size</label>
-                <input className={inputCls} type="number" min={1} max={500} value={form.partySize} onChange={(e) => setForm({ ...form, partySize: Number(e.target.value) })} />
+              <div className="grid sm:grid-cols-2 gap-3">
+                <Field label="Full name" required>
+                  <input className={inputCls} placeholder="Full name" required maxLength={100}
+                    value={form.name} onChange={(e) => set({ name: e.target.value })} />
+                </Field>
+                <Field label="Phone number" required>
+                  <input className={inputCls} type="tel" placeholder="055 917 1787" required maxLength={20}
+                    value={form.phone} onChange={(e) => set({ phone: e.target.value })} />
+                </Field>
               </div>
-              <textarea className={inputCls} rows={2} placeholder="Dietary needs, special requests (optional)" value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
-              <button type="submit" disabled={busy} className="btn-gold w-full disabled:opacity-60">
-                {busy ? <span className="inline-flex items-center gap-2"><Loader2 className="w-4 h-4 animate-spin" /> Reserving...</span> : "Confirm Reservation"}
+              <Field label="Email address" required>
+                <input className={inputCls} type="email" placeholder="you@example.com" required maxLength={255}
+                  value={form.email} onChange={(e) => set({ email: e.target.value })} />
+              </Field>
+              <div className="grid sm:grid-cols-2 gap-3">
+                <Field label="Number of guests" required>
+                  <input className={inputCls} type="number" min={1} max={500} value={form.partySize}
+                    onChange={(e) => set({ partySize: Number(e.target.value) })} />
+                </Field>
+                <Field label="Preferred arrival time" required>
+                  <input className={inputCls} type="time" required value={form.arrivalTime}
+                    onChange={(e) => set({ arrivalTime: e.target.value })} />
+                </Field>
+              </div>
+              <div className="grid sm:grid-cols-2 gap-3">
+                <YesNo label="VIP table required?" value={form.vip} onChange={(v) => set({ vip: v })} />
+                <YesNo label="Bottle reservation?" value={form.bottle} onChange={(v) => set({ bottle: v })} />
+              </div>
+              <Field label="Celebration type">
+                <select className={inputCls} value={form.celebration} onChange={(e) => set({ celebration: e.target.value })}>
+                  {CELEBRATIONS.map((c) => <option key={c} value={c}>{c}</option>)}
+                </select>
+              </Field>
+              <Field label="Special requests">
+                <textarea className={inputCls} rows={2} maxLength={1000} placeholder="Seating preference, dietary needs, surprise setup..."
+                  value={form.notes} onChange={(e) => set({ notes: e.target.value })} />
+              </Field>
+
+              <ConsentGate idPrefix="event" accurate={accurate} terms={agreed}
+                onAccurate={setAccurate} onTerms={setAgreed} />
+
+              <button type="submit" disabled={busy || !accurate || !agreed} className="btn-gold w-full disabled:opacity-60">
+                {busy ? <span className="inline-flex items-center gap-2"><Loader2 className="w-4 h-4 animate-spin" /> Submitting...</span> : "Submit Reservation"}
               </button>
             </form>
           </>
