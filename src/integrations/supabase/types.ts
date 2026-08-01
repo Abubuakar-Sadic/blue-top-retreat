@@ -14,54 +14,99 @@ export type Database = {
   }
   public: {
     Tables: {
+      booking_ref_counters: {
+        Row: {
+          last_seq: number
+          ref_date: string
+          ref_type: string
+        }
+        Insert: {
+          last_seq?: number
+          ref_date: string
+          ref_type: string
+        }
+        Update: {
+          last_seq?: number
+          ref_date?: string
+          ref_type?: string
+        }
+        Relationships: []
+      }
       bookings: {
         Row: {
+          adults: number
+          airport_pickup: boolean
+          arrival_time: string | null
           booking_code: string | null
           check_in: string
           check_out: string
+          children: number
           created_at: string
           customer_email: string | null
           customer_name: string
           customer_phone: string
           event_type: string | null
           id: string
+          internal_notes: string | null
+          nationality: string | null
+          nights: number | null
           notes: string | null
           payment_status: string
+          purpose_of_stay: string | null
           room_id: string | null
+          rooms_count: number
           status: string
           total_amount: number | null
           updated_at: string
         }
         Insert: {
+          adults?: number
+          airport_pickup?: boolean
+          arrival_time?: string | null
           booking_code?: string | null
           check_in: string
           check_out: string
+          children?: number
           created_at?: string
           customer_email?: string | null
           customer_name: string
           customer_phone: string
           event_type?: string | null
           id?: string
+          internal_notes?: string | null
+          nationality?: string | null
+          nights?: number | null
           notes?: string | null
           payment_status?: string
+          purpose_of_stay?: string | null
           room_id?: string | null
+          rooms_count?: number
           status?: string
           total_amount?: number | null
           updated_at?: string
         }
         Update: {
+          adults?: number
+          airport_pickup?: boolean
+          arrival_time?: string | null
           booking_code?: string | null
           check_in?: string
           check_out?: string
+          children?: number
           created_at?: string
           customer_email?: string | null
           customer_name?: string
           customer_phone?: string
           event_type?: string | null
           id?: string
+          internal_notes?: string | null
+          nationality?: string | null
+          nights?: number | null
           notes?: string | null
           payment_status?: string
+          purpose_of_stay?: string | null
           room_id?: string | null
+          rooms_count?: number
           status?: string
           total_amount?: number | null
           updated_at?: string
@@ -111,46 +156,64 @@ export type Database = {
       }
       event_reservations: {
         Row: {
+          arrival_time: string | null
           attendee_email: string | null
           attendee_name: string
           attendee_phone: string
+          bottle_reservation: boolean
+          celebration_type: string | null
           created_at: string
+          event_date: string | null
           event_id: string | null
           event_title: string | null
           id: string
+          internal_notes: string | null
           notes: string | null
           party_size: number
           reservation_code: string | null
           status: string
           updated_at: string
+          vip_table: boolean
         }
         Insert: {
+          arrival_time?: string | null
           attendee_email?: string | null
           attendee_name: string
           attendee_phone: string
+          bottle_reservation?: boolean
+          celebration_type?: string | null
           created_at?: string
+          event_date?: string | null
           event_id?: string | null
           event_title?: string | null
           id?: string
+          internal_notes?: string | null
           notes?: string | null
           party_size?: number
           reservation_code?: string | null
           status?: string
           updated_at?: string
+          vip_table?: boolean
         }
         Update: {
+          arrival_time?: string | null
           attendee_email?: string | null
           attendee_name?: string
           attendee_phone?: string
+          bottle_reservation?: boolean
+          celebration_type?: string | null
           created_at?: string
+          event_date?: string | null
           event_id?: string | null
           event_title?: string | null
           id?: string
+          internal_notes?: string | null
           notes?: string | null
           party_size?: number
           reservation_code?: string | null
           status?: string
           updated_at?: string
+          vip_table?: boolean
         }
         Relationships: [
           {
@@ -237,6 +300,45 @@ export type Database = {
           label?: string | null
           sort_order?: number
           updated_at?: string
+        }
+        Relationships: []
+      }
+      notifications: {
+        Row: {
+          created_at: string
+          customer_name: string | null
+          entity_id: string | null
+          id: string
+          is_archived: boolean
+          is_read: boolean
+          reference: string | null
+          status: string
+          summary: string | null
+          type: string
+        }
+        Insert: {
+          created_at?: string
+          customer_name?: string | null
+          entity_id?: string | null
+          id?: string
+          is_archived?: boolean
+          is_read?: boolean
+          reference?: string | null
+          status?: string
+          summary?: string | null
+          type: string
+        }
+        Update: {
+          created_at?: string
+          customer_name?: string | null
+          entity_id?: string | null
+          id?: string
+          is_archived?: boolean
+          is_read?: boolean
+          reference?: string | null
+          status?: string
+          summary?: string | null
+          type?: string
         }
         Relationships: []
       }
@@ -409,44 +511,71 @@ export type Database = {
       }
       venue_reservations: {
         Row: {
+          budget_range: string | null
+          catering_required: boolean
           created_at: string
           customer_email: string | null
           customer_name: string
           customer_phone: string
+          decoration_required: boolean
+          end_time: string | null
           event_date: string
           event_type: string
           guest_count: number
           id: string
+          internal_notes: string | null
           notes: string | null
+          photography_required: boolean
+          preferred_venue: string | null
           reservation_code: string | null
+          sound_system_required: boolean
+          start_time: string | null
           status: string
           updated_at: string
         }
         Insert: {
+          budget_range?: string | null
+          catering_required?: boolean
           created_at?: string
           customer_email?: string | null
           customer_name: string
           customer_phone: string
+          decoration_required?: boolean
+          end_time?: string | null
           event_date: string
           event_type: string
           guest_count?: number
           id?: string
+          internal_notes?: string | null
           notes?: string | null
+          photography_required?: boolean
+          preferred_venue?: string | null
           reservation_code?: string | null
+          sound_system_required?: boolean
+          start_time?: string | null
           status?: string
           updated_at?: string
         }
         Update: {
+          budget_range?: string | null
+          catering_required?: boolean
           created_at?: string
           customer_email?: string | null
           customer_name?: string
           customer_phone?: string
+          decoration_required?: boolean
+          end_time?: string | null
           event_date?: string
           event_type?: string
           guest_count?: number
           id?: string
+          internal_notes?: string | null
           notes?: string | null
+          photography_required?: boolean
+          preferred_venue?: string | null
           reservation_code?: string | null
+          sound_system_required?: boolean
+          start_time?: string | null
           status?: string
           updated_at?: string
         }
@@ -473,6 +602,7 @@ export type Database = {
       is_manager_or_above: { Args: { _uid: string }; Returns: boolean }
       is_protected_ceo: { Args: { _uid: string }; Returns: boolean }
       is_staff: { Args: { _uid: string }; Returns: boolean }
+      next_booking_reference: { Args: { _type: string }; Returns: string }
     }
     Enums: {
       app_role:

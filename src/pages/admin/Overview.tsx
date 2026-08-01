@@ -109,6 +109,10 @@ const Overview = () => {
 export const StatusBadge = ({ status }: { status: string }) => {
   const map: Record<string, string> = {
     pending: "bg-amber-500/15 text-amber-700 border-amber-500/30",
+    confirmed: "bg-sky-500/15 text-sky-700 border-sky-500/30",
+    checked_in: "bg-indigo-500/15 text-indigo-700 border-indigo-500/30",
+    cancelled: "bg-rose-500/15 text-rose-700 border-rose-500/30",
+    new: "bg-amber-500/15 text-amber-700 border-amber-500/30",
     approved: "bg-emerald-500/15 text-emerald-700 border-emerald-500/30",
     rejected: "bg-rose-500/15 text-rose-700 border-rose-500/30",
     completed: "bg-[hsl(var(--navy))]/15 text-[hsl(var(--navy))] border-[hsl(var(--navy))]/30",
@@ -120,7 +124,7 @@ export const StatusBadge = ({ status }: { status: string }) => {
   };
   return (
     <span className={`inline-flex items-center px-2 py-0.5 rounded-full border text-xs font-medium capitalize ${map[status] ?? "bg-muted text-muted-foreground border-border"}`}>
-      {status}
+      {String(status ?? "").replace(/_/g, " ")}
     </span>
   );
 };

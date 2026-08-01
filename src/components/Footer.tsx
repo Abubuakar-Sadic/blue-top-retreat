@@ -1,3 +1,4 @@
+import { Link } from "react-router-dom";
 import { Phone, MapPin, Mail, Instagram } from "lucide-react";
 
 // TikTok glyph (lucide doesn't ship one)
@@ -63,7 +64,7 @@ const Footer = () => (
           </ul>
         </div>
 
-        {/* Social */}
+        {/* Social + legal */}
         <div>
           <h4 className="text-white font-semibold mb-4">Follow Us</h4>
           <div className="flex gap-3">
@@ -80,6 +81,12 @@ const Footer = () => (
               </a>
             ))}
           </div>
+          <h4 className="text-white font-semibold mt-8 mb-4">Legal</h4>
+          <ul className="space-y-2 text-sm">
+            <li><Link to="/terms" className="hover:text-gold transition-colors">Terms &amp; Conditions</Link></li>
+            <li><Link to="/privacy-policy" className="hover:text-gold transition-colors">Privacy Policy</Link></li>
+            <li><Link to="/cancellation-policy" className="hover:text-gold transition-colors">Cancellation Policy</Link></li>
+          </ul>
         </div>
       </div>
 
