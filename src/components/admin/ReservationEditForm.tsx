@@ -35,7 +35,7 @@ const ReservationEditForm = ({ table, row, fields, onSaved, onCancel }: Props) =
       const v = values[f.key];
       payload[f.key] = v === "" ? null : f.type === "number" ? Number(v) : v;
     });
-    const { error } = await supabase.from(table).update(payload).eq("id", row.id);
+    const { error } = await supabase.from(table).update(payload as never).eq("id", row.id);
     setSaving(false);
     if (error) return toast.error(error.message);
     toast.success("Reservation updated");
