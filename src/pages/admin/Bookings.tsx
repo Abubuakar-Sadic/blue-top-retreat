@@ -1,19 +1,27 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Loader2, Eye, Trash2 } from "lucide-react";
 import { format } from "date-fns";
 import { StatusBadge } from "./Overview";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import ReservationFilters, { emptyFilters, type FilterState } from "@/components/admin/ReservationFilters";
+import QuickActions from "@/components/admin/QuickActions";
+import InternalNotes from "@/components/admin/InternalNotes";
+import ReservationTimeline from "@/components/admin/ReservationTimeline";
+import ReservationEditForm from "@/components/admin/ReservationEditForm";
+import { matchesSearch, toReservationView, withinRange } from "@/lib/reservations";
 
 const Bookings = () => {
   const [items, setItems] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState<string>("all");
+  const [filters, setFilters] = useState<FilterState>({ ...emptyFilters });
   const [viewing, setViewing] = useState<any>(null);
+  const [editing, setEditing] = useState(false);
+  const [params, setParams] = useSearchParams();
 
   const load = async () => {
-    setLoading(true);
     const { data } = await supabase.from("bookings").select("*, rooms(room_name)").order("created_at", { ascending: false });
     setItems(data ?? []);
     setLoading(false);
@@ -26,6 +34,26 @@ const Bookings = () => {
     return () => { supabase.removeChannel(ch); };
   }, []);
 
+  // Deep link from the notification centre: ?ref=BTV-ROOM-…
+  useEffect(() => {
+    const ref = params.get("ref");
+    if (!ref || !items.length) return;
+    const hit = items.find((b) => b.booking_code === ref);
+    setFilters((f) => ({ ...f, search: ref }));
+    if (hit) setViewing(hit);
+    params.delete("ref");
+    setParams(params, { replace: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [items]);
+
+  // Keep the open dialog in sync with realtime updates.
+  useEffect(() => {
+    if (!viewing) return;
+    const fresh = items.find((b) => b.id === viewing.id);
+    if (fresh && fresh !== viewing) setViewing(fresh);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [items]);
+
   const updateStatus = async (id: string, status: string) => {
     const { error } = await supabase.from("bookings").update({ status }).eq("id", id);
     if (error) return toast.error(error.message);
@@ -37,7 +65,25 @@ const Bookings = () => {
     toast.success("Booking deleted"); load();
   };
 
-  const filtered = filter === "all" ? items : items.filter((b) => b.status === filter);
+  const roomOptions = useMemo(
+    () => Array.from(new Set(items.map((b) => b.rooms?.room_name).filter(Boolean))) as string[],
+    [items],
+  );
+
+  const filtered = useMemo(
+    () =>
+      items.filter((b) => {
+        const view = toReservationView(b, "booking");
+        if (!matchesSearch(view, filters.search)) return false;
+        if (filters.status !== "all" && b.status !== filters.status) return false;
+        if (filters.subject !== "all" && (b.rooms?.room_name ?? "") !== filters.subject) return false;
+        if (!withinRange(b.check_in, filters.from, filters.to)) return false;
+        return true;
+      }),
+    [items, filters],
+  );
+
+  const viewingView = viewing ? toReservationView(viewing, "booking") : null;
 
   return (
     <div className="space-y-6">
@@ -46,14 +92,12 @@ const Bookings = () => {
         <p className="text-muted-foreground text-sm mt-1">Approve, reject, or complete reservation requests.</p>
       </div>
 
-      <div className="flex gap-2 flex-wrap">
-        {["all", "pending", "approved", "rejected", "completed"].map((s) => (
-          <button key={s} onClick={() => setFilter(s)}
-            className={`px-3 py-1.5 rounded-full text-xs capitalize border transition-colors ${filter === s ? "bg-[hsl(var(--navy))] text-white border-transparent" : "bg-card hover:bg-muted"}`}>
-            {s}
-          </button>
-        ))}
-      </div>
+      <ReservationFilters
+        value={filters}
+        onChange={setFilters}
+        subjectLabel="rooms"
+        subjectOptions={roomOptions}
+      />
 
       <div className="bg-card rounded-xl border border-border/60 shadow-sm overflow-hidden">
         {loading ? (
@@ -99,7 +143,7 @@ const Bookings = () => {
                     <td className="px-5 py-3"><StatusBadge status={b.payment_status} /></td>
                     <td className="px-5 py-3">
                       <div className="flex gap-1 justify-end">
-                        <button onClick={() => setViewing(b)} className="p-1.5 rounded-md hover:bg-muted" title="View"><Eye className="w-4 h-4" /></button>
+                        <button onClick={() => { setEditing(false); setViewing(b); }} className="p-1.5 rounded-md hover:bg-muted" title="View" aria-label="View booking"><Eye className="w-4 h-4" /></button>
                         <button onClick={() => remove(b.id)} className="p-1.5 rounded-md hover:bg-destructive/10 text-destructive" title="Delete"><Trash2 className="w-4 h-4" /></button>
                       </div>
                     </td>
@@ -111,11 +155,38 @@ const Bookings = () => {
         )}
       </div>
 
-      <Dialog open={!!viewing} onOpenChange={(o) => !o && setViewing(null)}>
-        <DialogContent>
+      <Dialog open={!!viewing} onOpenChange={(o) => { if (!o) { setViewing(null); setEditing(false); } }}>
+        <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-2xl">
           <DialogHeader><DialogTitle className="font-display text-2xl">Booking Details</DialogTitle></DialogHeader>
-          {viewing && (
+          {viewing && viewingView && (
             <div className="space-y-3 text-sm">
+              <QuickActions
+                view={viewingView}
+                onStatus={(s) => updateStatus(viewing.id, s)}
+                onEdit={() => setEditing((e) => !e)}
+                extra={[["Guests", `${viewing.adults ?? 0} adult(s), ${viewing.children ?? 0} child(ren)`]]}
+              />
+              {editing && (
+                <ReservationEditForm
+                  table="bookings"
+                  row={viewing}
+                  fields={[
+                    { key: "customer_name", label: "Customer name", type: "text" },
+                    { key: "customer_phone", label: "Phone", type: "text" },
+                    { key: "customer_email", label: "Email", type: "text" },
+                    { key: "check_in", label: "Check-in", type: "date" },
+                    { key: "check_out", label: "Check-out", type: "date" },
+                    { key: "adults", label: "Adults", type: "number" },
+                    { key: "children", label: "Children", type: "number" },
+                    { key: "total_amount", label: "Total amount (GHS)", type: "number" },
+                    { key: "status", label: "Status", type: "select", options: ["pending", "approved", "confirmed", "checked_in", "checked_out", "completed", "cancelled", "rejected"] },
+                    { key: "payment_status", label: "Payment status", type: "select", options: ["unpaid", "paid", "refunded"] },
+                    { key: "notes", label: "Guest notes", type: "textarea" },
+                  ]}
+                  onSaved={() => { setEditing(false); load(); }}
+                  onCancel={() => setEditing(false)}
+                />
+              )}
               <Row label="Booking Code" value={<span className="font-mono text-gold font-semibold">{viewing.booking_code}</span>} />
               <Row label="Customer" value={viewing.customer_name} />
               <Row label="Phone" value={viewing.customer_phone} />
@@ -128,6 +199,8 @@ const Bookings = () => {
               <Row label="Status" value={<StatusBadge status={viewing.status} />} />
               <Row label="Payment" value={<StatusBadge status={viewing.payment_status} />} />
               {viewing.notes && <Row label="Notes" value={viewing.notes} />}
+              <ReservationTimeline entityType="booking" entityId={viewing.id} />
+              <InternalNotes entityType="booking" entityId={viewing.id} />
             </div>
           )}
         </DialogContent>
