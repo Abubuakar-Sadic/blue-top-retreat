@@ -1,7 +1,9 @@
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
-import { LayoutDashboard, BedDouble, CalendarCheck, CreditCard, MessageSquare, LogOut, Crown, Sparkles, Ticket, PartyPopper, Users, History, Images } from "lucide-react";
+import { LayoutDashboard, BedDouble, CalendarCheck, CreditCard, MessageSquare, LogOut, Crown, Sparkles, Ticket, PartyPopper, Users, History, Images, Bell } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { ROLE_LABELS, type Capability, type StaffRole } from "@/lib/permissions";
+import { NotificationProvider } from "@/hooks/useNotifications";
+import NotificationBell from "@/components/admin/NotificationBell";
 import {
   Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarMenu,
   SidebarMenuButton, SidebarMenuItem, SidebarProvider, SidebarTrigger, SidebarHeader, SidebarFooter, useSidebar,
@@ -11,6 +13,7 @@ import { toast } from "sonner";
 // `cap: null` means visible to every staff member.
 const items: { to: string; label: string; icon: typeof LayoutDashboard; end?: boolean; cap: Capability | null }[] = [
   { to: "/admin", label: "Overview", icon: LayoutDashboard, end: true, cap: null },
+  { to: "/admin/notifications", label: "Notifications", icon: Bell, cap: "view_operations" },
   { to: "/admin/bookings", label: "Bookings", icon: CalendarCheck, cap: "manage_bookings" },
   { to: "/admin/event-reservations", label: "Event Attendance", icon: Ticket, cap: "manage_bookings" },
   { to: "/admin/venue-reservations", label: "Venue Bookings", icon: PartyPopper, cap: "manage_bookings" },
@@ -83,21 +86,24 @@ const AdminSidebar = () => {
 };
 
 const AdminLayout = () => (
-  <SidebarProvider>
-    <div className="min-h-screen flex w-full bg-muted/30">
-      <AdminSidebar />
-      <div className="flex-1 flex flex-col min-w-0">
-        <header className="h-14 flex items-center gap-3 px-4 border-b bg-background/80 backdrop-blur-sm sticky top-0 z-10">
-          <SidebarTrigger />
-          <div className="flex-1" />
-          <span className="text-xs tracking-[0.2em] uppercase text-gold font-medium hidden sm:inline">Management Dashboard</span>
-        </header>
-        <main className="flex-1 p-4 md:p-6 lg:p-8 overflow-auto">
-          <Outlet />
-        </main>
+  <NotificationProvider>
+    <SidebarProvider>
+      <div className="min-h-screen flex w-full bg-muted/30">
+        <AdminSidebar />
+        <div className="flex-1 flex flex-col min-w-0">
+          <header className="h-14 flex items-center gap-3 px-4 border-b bg-background/80 backdrop-blur-sm sticky top-0 z-10">
+            <SidebarTrigger />
+            <div className="flex-1" />
+            <span className="text-xs tracking-[0.2em] uppercase text-gold font-medium hidden sm:inline">Management Dashboard</span>
+            <NotificationBell />
+          </header>
+          <main className="flex-1 p-4 md:p-6 lg:p-8 overflow-auto">
+            <Outlet />
+          </main>
+        </div>
       </div>
-    </div>
-  </SidebarProvider>
+    </SidebarProvider>
+  </NotificationProvider>
 );
 
 export default AdminLayout;
