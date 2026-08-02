@@ -1,10 +1,24 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { BedDouble, CalendarCheck, CircleDollarSign, DoorOpen, Loader2 } from "lucide-react";
+import { BedDouble, CalendarCheck, CircleDollarSign, DoorOpen, Loader2, Clock, CheckCircle2, XCircle, PartyPopper, Ticket } from "lucide-react";
 import { format } from "date-fns";
 import { useAuth } from "@/hooks/useAuth";
 
-type Stats = { totalBookings: number; available: number; occupied: number; revenue: number };
+type Stats = {
+  totalReservations: number;
+  pending: number;
+  confirmed: number;
+  cancelled: number;
+  revenue: number;
+  roomBookings: number;
+  venueReservations: number;
+  eventReservations: number;
+  available: number;
+  occupied: number;
+};
+
+const CONFIRMED = ["confirmed", "approved", "checked_in", "checked_out", "completed"];
+const CANCELLED = ["cancelled", "rejected"];
 
 const Card = ({ icon: Icon, label, value, accent }: any) => (
   <div className="bg-card rounded-xl border border-border/60 p-5 shadow-sm hover:shadow-md transition-shadow">
@@ -26,24 +40,48 @@ const Overview = () => {
   const [recent, setRecent] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    (async () => {
-      if (!showReports) { setLoading(false); return; }
-      const [bookings, rooms, payments, recentB] = await Promise.all([
-        supabase.from("bookings").select("id, status, total_amount"),
-        supabase.from("rooms").select("id, is_available"),
-        showRevenue ? supabase.from("payments").select("amount, status") : Promise.resolve({ data: [] as any[] }),
-        supabase.from("bookings").select("*, rooms(room_name)").order("created_at", { ascending: false }).limit(5),
-      ]);
-      const totalBookings = bookings.data?.length ?? 0;
-      const available = rooms.data?.filter((r) => r.is_available).length ?? 0;
-      const occupied = (rooms.data?.length ?? 0) - available;
-      const revenue = payments.data?.filter((p) => p.status === "successful").reduce((s, p) => s + Number(p.amount), 0) ?? 0;
-      setStats({ totalBookings, available, occupied, revenue });
-      setRecent(recentB.data ?? []);
-      setLoading(false);
-    })();
+  const load = useCallback(async () => {
+    if (!showReports) { setLoading(false); return; }
+    const [bookings, venue, events, rooms, payments, recentB] = await Promise.all([
+      supabase.from("bookings").select("id, status, total_amount"),
+      supabase.from("venue_reservations").select("id, status"),
+      supabase.from("event_reservations").select("id, status"),
+      supabase.from("rooms").select("id, is_available"),
+      showRevenue ? supabase.from("payments").select("amount, status") : Promise.resolve({ data: [] as any[] }),
+      supabase.from("bookings").select("*, rooms(room_name)").order("created_at", { ascending: false }).limit(5),
+    ]);
+    const all = [...(bookings.data ?? []), ...(venue.data ?? []), ...(events.data ?? [])] as { status: string }[];
+    const available = rooms.data?.filter((r) => r.is_available).length ?? 0;
+    setStats({
+      totalReservations: all.length,
+      pending: all.filter((r) => r.status === "pending").length,
+      confirmed: all.filter((r) => CONFIRMED.includes(r.status)).length,
+      cancelled: all.filter((r) => CANCELLED.includes(r.status)).length,
+      revenue: payments.data?.filter((p) => p.status === "successful").reduce((s, p) => s + Number(p.amount), 0) ?? 0,
+      roomBookings: bookings.data?.length ?? 0,
+      venueReservations: venue.data?.length ?? 0,
+      eventReservations: events.data?.length ?? 0,
+      available,
+      occupied: (rooms.data?.length ?? 0) - available,
+    });
+    setRecent(recentB.data ?? []);
+    setLoading(false);
   }, [showReports, showRevenue]);
+
+  useEffect(() => { load(); }, [load]);
+
+  // Live dashboard — cards refresh whenever any reservation or payment changes.
+  useEffect(() => {
+    if (!showReports) return;
+    let timer: ReturnType<typeof setTimeout>;
+    const debounced = () => { clearTimeout(timer); timer = setTimeout(() => { load(); }, 300); };
+    const channel = supabase.channel("admin-overview-live");
+    ["bookings", "venue_reservations", "event_reservations", "payments", "rooms"].forEach((table) => {
+      channel.on("postgres_changes", { event: "*", schema: "public", table }, debounced);
+    });
+    channel.subscribe();
+    return () => { clearTimeout(timer); supabase.removeChannel(channel); };
+  }, [showReports, load]);
 
   if (loading) return <div className="flex justify-center py-20"><Loader2 className="w-6 h-6 animate-spin text-gold" /></div>;
 
@@ -63,14 +101,26 @@ const Overview = () => {
         <p className="text-muted-foreground text-sm mt-1">Welcome back. Here's what's happening at Blue Top Villa.</p>
       </div>
 
-      <div className={`grid grid-cols-2 gap-4 ${showRevenue ? "lg:grid-cols-4" : "lg:grid-cols-3"}`}>
-        <Card icon={CalendarCheck} label="Total Bookings" value={stats?.totalBookings} accent="bg-[hsl(var(--gold))]/15 text-[hsl(var(--gold-dark))]" />
-        <Card icon={DoorOpen} label="Available Rooms" value={stats?.available} accent="bg-emerald-500/15 text-emerald-600" />
-        <Card icon={BedDouble} label="Occupied Rooms" value={stats?.occupied} accent="bg-rose-500/15 text-rose-600" />
-        {showRevenue && (
-          <Card icon={CircleDollarSign} label="Total Revenue" value={`GHS ${(stats?.revenue ?? 0).toLocaleString()}`} accent="bg-[hsl(var(--navy))]/15 text-[hsl(var(--navy))]" />
+      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+        <Card icon={CalendarCheck} label="Total Reservations" value={stats?.totalReservations} accent="bg-[hsl(var(--gold))]/15 text-[hsl(var(--gold-dark))]" />
+        <Card icon={Clock} label="Pending" value={stats?.pending} accent="bg-amber-500/15 text-amber-600" />
+        <Card icon={CheckCircle2} label="Confirmed" value={stats?.confirmed} accent="bg-emerald-500/15 text-emerald-600" />
+        <Card icon={XCircle} label="Cancelled" value={stats?.cancelled} accent="bg-rose-500/15 text-rose-600" />
+        <Card icon={BedDouble} label="Room Bookings" value={stats?.roomBookings} accent="bg-[hsl(var(--navy))]/15 text-[hsl(var(--navy))]" />
+        <Card icon={PartyPopper} label="Venue Reservations" value={stats?.venueReservations} accent="bg-indigo-500/15 text-indigo-600" />
+        <Card icon={Ticket} label="Event Reservations" value={stats?.eventReservations} accent="bg-sky-500/15 text-sky-600" />
+        {showRevenue ? (
+          <Card icon={CircleDollarSign} label="Total Revenue" value={`GHS ${(stats?.revenue ?? 0).toLocaleString()}`} accent="bg-[hsl(var(--gold))]/15 text-[hsl(var(--gold-dark))]" />
+        ) : (
+          <Card icon={DoorOpen} label="Available Rooms" value={stats?.available} accent="bg-emerald-500/15 text-emerald-600" />
         )}
       </div>
+      {showRevenue && (
+        <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+          <Card icon={DoorOpen} label="Available Rooms" value={stats?.available} accent="bg-emerald-500/15 text-emerald-600" />
+          <Card icon={BedDouble} label="Occupied Rooms" value={stats?.occupied} accent="bg-rose-500/15 text-rose-600" />
+        </div>
+      )}
 
       <div className="bg-card rounded-xl border border-border/60 shadow-sm">
         <div className="p-5 border-b border-border/60 flex items-center justify-between">

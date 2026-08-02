@@ -24,6 +24,7 @@ import EventReservations from "./pages/admin/EventReservations.tsx";
 import VenueReservations from "./pages/admin/VenueReservations.tsx";
 import Staff from "./pages/admin/Staff.tsx";
 import AuditLog from "./pages/admin/AuditLog.tsx";
+import Notifications from "./pages/admin/Notifications.tsx";
 
 const queryClient = new QueryClient();
 
@@ -43,6 +44,9 @@ const App = () => (
             <Route element={<ProtectedAdmin />}>
               <Route path="/admin" element={<AdminLayout />}>
                 <Route index element={<Overview />} />
+                <Route element={<RequireCap cap="view_operations" />}>
+                  <Route path="notifications" element={<Notifications />} />
+                </Route>
                 <Route element={<RequireCap cap="manage_bookings" />}>
                   <Route path="bookings" element={<Bookings />} />
                   <Route path="messages" element={<Messages />} />

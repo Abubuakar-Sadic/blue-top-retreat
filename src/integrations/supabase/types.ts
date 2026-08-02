@@ -407,6 +407,72 @@ export type Database = {
         }
         Relationships: []
       }
+      reservation_notes: {
+        Row: {
+          author_email: string | null
+          author_id: string | null
+          created_at: string
+          entity_id: string
+          entity_type: string
+          id: string
+          note: string
+          updated_at: string
+        }
+        Insert: {
+          author_email?: string | null
+          author_id?: string | null
+          created_at?: string
+          entity_id: string
+          entity_type: string
+          id?: string
+          note: string
+          updated_at?: string
+        }
+        Update: {
+          author_email?: string | null
+          author_id?: string | null
+          created_at?: string
+          entity_id?: string
+          entity_type?: string
+          id?: string
+          note?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      reservation_timeline: {
+        Row: {
+          actor_email: string | null
+          actor_id: string | null
+          created_at: string
+          detail: string | null
+          entity_id: string
+          entity_type: string
+          event: string
+          id: string
+        }
+        Insert: {
+          actor_email?: string | null
+          actor_id?: string | null
+          created_at?: string
+          detail?: string | null
+          entity_id: string
+          entity_type: string
+          event: string
+          id?: string
+        }
+        Update: {
+          actor_email?: string | null
+          actor_id?: string | null
+          created_at?: string
+          detail?: string | null
+          entity_id?: string
+          entity_type?: string
+          event?: string
+          id?: string
+        }
+        Relationships: []
+      }
       role_audit_log: {
         Row: {
           action: string

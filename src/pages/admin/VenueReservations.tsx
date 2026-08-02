@@ -1,18 +1,27 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Loader2, Check, X, Trash2, Eye } from "lucide-react";
 import { format } from "date-fns";
 import { StatusBadge } from "./Overview";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import ReservationFilters, { emptyFilters, type FilterState } from "@/components/admin/ReservationFilters";
+import QuickActions from "@/components/admin/QuickActions";
+import InternalNotes from "@/components/admin/InternalNotes";
+import ReservationTimeline from "@/components/admin/ReservationTimeline";
+import ReservationEditForm from "@/components/admin/ReservationEditForm";
+import { matchesSearch, toReservationView, withinRange } from "@/lib/reservations";
 
 const VenueReservations = () => {
   const [items, setItems] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [viewing, setViewing] = useState<any>(null);
+  const [editing, setEditing] = useState(false);
+  const [filters, setFilters] = useState<FilterState>({ ...emptyFilters });
+  const [params, setParams] = useSearchParams();
 
   const load = async () => {
-    setLoading(true);
     const { data } = await supabase.from("venue_reservations").select("*").order("created_at", { ascending: false });
     setItems(data ?? []); setLoading(false);
   };
@@ -23,6 +32,24 @@ const VenueReservations = () => {
       .subscribe();
     return () => { supabase.removeChannel(ch); };
   }, []);
+
+  useEffect(() => {
+    const ref = params.get("ref");
+    if (!ref || !items.length) return;
+    const hit = items.find((r) => r.reservation_code === ref);
+    setFilters((f) => ({ ...f, search: ref }));
+    if (hit) setViewing(hit);
+    params.delete("ref");
+    setParams(params, { replace: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [items]);
+
+  useEffect(() => {
+    if (!viewing) return;
+    const fresh = items.find((r) => r.id === viewing.id);
+    if (fresh && fresh !== viewing) setViewing(fresh);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [items]);
 
   const update = async (id: string, status: string) => {
     const { error } = await supabase.from("venue_reservations").update({ status }).eq("id", id);
@@ -35,12 +62,40 @@ const VenueReservations = () => {
     toast.success("Deleted"); load();
   };
 
+  const eventTypes = useMemo(() => Array.from(new Set(items.map((r) => r.event_type).filter(Boolean))) as string[], [items]);
+  const venues = useMemo(() => Array.from(new Set(items.map((r) => r.preferred_venue).filter(Boolean))) as string[], [items]);
+
+  const filtered = useMemo(
+    () =>
+      items.filter((r) => {
+        const view = toReservationView(r, "venue_reservation");
+        if (!matchesSearch(view, filters.search)) return false;
+        if (filters.status !== "all" && r.status !== filters.status) return false;
+        if ((filters.type ?? "all") !== "all" && r.event_type !== filters.type) return false;
+        if (filters.subject !== "all" && (r.preferred_venue ?? "") !== filters.subject) return false;
+        if (!withinRange(r.event_date, filters.from, filters.to)) return false;
+        return true;
+      }),
+    [items, filters],
+  );
+
+  const viewingView = viewing ? toReservationView(viewing, "venue_reservation") : null;
+
   return (
     <div className="space-y-6">
       <div>
         <h1 className="font-display text-3xl font-bold">Venue Reservations</h1>
         <p className="text-muted-foreground text-sm mt-1">Requests from guests who want to host an event at the villa (code prefix BKE).</p>
       </div>
+
+      <ReservationFilters
+        value={filters}
+        onChange={setFilters}
+        typeLabel="event types"
+        typeOptions={eventTypes}
+        subjectLabel="venues"
+        subjectOptions={venues}
+      />
 
       <div className="bg-card rounded-xl border border-border/60 shadow-sm overflow-hidden">
         {loading ? (
@@ -60,8 +115,8 @@ const VenueReservations = () => {
                 </tr>
               </thead>
               <tbody>
-                {items.length === 0 && <tr><td colSpan={7} className="px-5 py-10 text-center text-muted-foreground">No venue reservations yet</td></tr>}
-                {items.map((r) => (
+                {filtered.length === 0 && <tr><td colSpan={7} className="px-5 py-10 text-center text-muted-foreground">No venue reservations found</td></tr>}
+                {filtered.map((r) => (
                   <tr key={r.id} className="border-t border-border/40 hover:bg-muted/30">
                     <td className="px-5 py-3"><span className="font-mono text-xs text-gold font-semibold">{r.reservation_code}</span></td>
                     <td className="px-5 py-3">
@@ -74,7 +129,7 @@ const VenueReservations = () => {
                     <td className="px-5 py-3"><StatusBadge status={r.status} /></td>
                     <td className="px-5 py-3">
                       <div className="flex gap-1 justify-end">
-                        <button onClick={() => setViewing(r)} className="p-1.5 rounded-md hover:bg-muted" title="View"><Eye className="w-4 h-4" /></button>
+                        <button onClick={() => { setEditing(false); setViewing(r); }} className="p-1.5 rounded-md hover:bg-muted" title="View" aria-label="View reservation"><Eye className="w-4 h-4" /></button>
                         {r.status === "pending" && (
                           <>
                             <button onClick={() => update(r.id, "approved")} className="p-1.5 rounded-md hover:bg-emerald-500/10 text-emerald-600" title="Approve"><Check className="w-4 h-4" /></button>
@@ -92,11 +147,38 @@ const VenueReservations = () => {
         )}
       </div>
 
-      <Dialog open={!!viewing} onOpenChange={(o) => !o && setViewing(null)}>
-        <DialogContent>
+      <Dialog open={!!viewing} onOpenChange={(o) => { if (!o) { setViewing(null); setEditing(false); } }}>
+        <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-2xl">
           <DialogHeader><DialogTitle className="font-display text-2xl">Venue Reservation</DialogTitle></DialogHeader>
-          {viewing && (
+          {viewing && viewingView && (
             <div className="space-y-3 text-sm">
+              <QuickActions
+                view={viewingView}
+                onStatus={(s) => update(viewing.id, s)}
+                onEdit={() => setEditing((e) => !e)}
+                extra={[["Guests", String(viewing.guest_count ?? "—")], ["Venue", viewing.preferred_venue ?? "—"]]}
+              />
+              {editing && (
+                <ReservationEditForm
+                  table="venue_reservations"
+                  row={viewing}
+                  fields={[
+                    { key: "customer_name", label: "Host name", type: "text" },
+                    { key: "customer_phone", label: "Phone", type: "text" },
+                    { key: "customer_email", label: "Email", type: "text" },
+                    { key: "event_type", label: "Event type", type: "text" },
+                    { key: "event_date", label: "Event date", type: "date" },
+                    { key: "start_time", label: "Start time", type: "time" },
+                    { key: "end_time", label: "End time", type: "time" },
+                    { key: "guest_count", label: "Expected guests", type: "number" },
+                    { key: "preferred_venue", label: "Preferred venue", type: "text" },
+                    { key: "status", label: "Status", type: "select", options: ["pending", "approved", "confirmed", "completed", "cancelled", "rejected"] },
+                    { key: "notes", label: "Guest notes", type: "textarea" },
+                  ]}
+                  onSaved={() => { setEditing(false); load(); }}
+                  onCancel={() => setEditing(false)}
+                />
+              )}
               <Row label="Code" value={<span className="font-mono text-gold font-semibold">{viewing.reservation_code}</span>} />
               <Row label="Host" value={viewing.customer_name} />
               <Row label="Phone" value={viewing.customer_phone} />
@@ -106,6 +188,8 @@ const VenueReservations = () => {
               <Row label="Expected Guests" value={viewing.guest_count} />
               <Row label="Status" value={<StatusBadge status={viewing.status} />} />
               {viewing.notes && <Row label="Notes" value={viewing.notes} />}
+              <ReservationTimeline entityType="venue_reservation" entityId={viewing.id} />
+              <InternalNotes entityType="venue_reservation" entityId={viewing.id} />
             </div>
           )}
         </DialogContent>
