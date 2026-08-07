@@ -8,6 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 const schema = z.object({
   name: z.string().trim().min(1).max(100),
   email: z.string().trim().email().max(255).optional().or(z.literal("")),
+  phone: z.string().trim().max(20).optional().or(z.literal("")),
   message: z.string().trim().min(1).max(1000),
 });
 
@@ -19,7 +20,7 @@ const details = [
 ];
 
 const ContactSection = () => {
-  const [form, setForm] = useState({ name: "", email: "", message: "" });
+  const [form, setForm] = useState({ name: "", email: "", phone: "", message: "" });
   const [busy, setBusy] = useState(false);
 
   const submit = async (e: React.FormEvent) => {
@@ -28,12 +29,15 @@ const ContactSection = () => {
     if (!parsed.success) { toast.error(parsed.error.issues[0].message); return; }
     setBusy(true);
     const { error } = await supabase.from("contact_messages").insert({
-      name: form.name, email: form.email || null, message: form.message,
+      name: form.name,
+      email: form.email || null,
+      phone: form.phone || null,
+      message: form.message,
     });
     setBusy(false);
     if (error) { toast.error(error.message); return; }
     toast.success("Message sent! We'll be in touch.");
-    setForm({ name: "", email: "", message: "" });
+    setForm({ name: "", email: "", phone: "", message: "" });
   };
 
   const inputClass = "w-full px-4 py-3 rounded-lg border border-border bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-gold/50 focus:border-gold transition-all";
@@ -83,6 +87,8 @@ const ContactSection = () => {
             <input id="contact-email" className={inputClass} type="email" placeholder="Email (optional)" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
           </div>
         </div>
+        <label htmlFor="contact-phone" className="sr-only">Phone (optional)</label>
+        <input id="contact-phone" className={inputClass} type="tel" maxLength={20} placeholder="Phone (optional)" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
         <label htmlFor="contact-message" className="sr-only">Your message</label>
         <textarea id="contact-message" className={inputClass} rows={4} placeholder="Your message..." value={form.message} onChange={(e) => setForm({ ...form, message: e.target.value })} required />
         <button type="submit" disabled={busy} className="btn-gold w-full disabled:opacity-60">{busy ? "Sending..." : "Send Message"}</button>
